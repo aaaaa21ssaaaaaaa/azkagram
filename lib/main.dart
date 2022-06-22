@@ -48,18 +48,25 @@ void main(List<String> args) async {
   for (var i = 0; i < users.length; i++) {
     var loop_data = users[i];
     if (loop_data is Map && loop_data["is_sign"] is bool && loop_data["is_sign"]) {
-      var user_path = "${appSupport.path}/client_${i}/";
+      var user_path = "${appSupport.path}/client_$i/";
+      Box<dynamic> box_client = await Hive.openBox("client", path: user_path);
       Tdlib tg = Tdlib("libtdjson.so", {
         "path_application": appSupport.path,
         "index_user": i,
         'database_directory': user_path,
         'files_directory': user_path,
+        'user_path': user_path,
       });
       tg.on("update", (UpdateTd update) {
-        tgUpdate(update, box: box, tg: tg);
+        tgUpdate(update, box: box, tg: tg, box_client: box_client);
       });
       await tg.initIsolate();
-      typePage = MainPage(box: box, get_me: loop_data, tg: tg);
+      typePage = MainPage(
+        box: box,
+        get_me: loop_data,
+        tg: tg,
+        box_client: box_client,
+      );
       return runSimulate(
         home: typePage,
         debugShowCheckedModeBanner: false,
@@ -67,31 +74,33 @@ void main(List<String> args) async {
     }
   }
   var index_user = (users.isEmpty) ? 0 : (users.length + 1);
-  var user_path = "${appSupport.path}/client_${index_user}/";
+  var user_path = "${appSupport.path}/client_$index_user/";
   var dir = Directory(user_path);
   if (await dir.exists()) {
     dir.deleteSync(recursive: true);
   }
+  Box<dynamic> box_client = await Hive.openBox("client", path: user_path);
   Tdlib tg = Tdlib("libtdjson.so", {
     "path_application": appSupport.path,
     "index_user": index_user,
     'database_directory': user_path,
     'files_directory': user_path,
+    'user_path': user_path,
   });
 
   tg.on("update", (UpdateTd update) {
-    tgUpdate(update, box: box, tg: tg);
+    tgUpdate(update, box: box, tg: tg, box_client: box_client);
   });
 
   await tg.initIsolate();
-  typePage = SignPage(box: box, tg: tg);
+  typePage = SignPage(box: box, tg: tg, box_client: box_client);
   return runSimulate(
     home: typePage,
     debugShowCheckedModeBanner: false,
   );
 }
 
-void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg}) async {
+void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Box box_client}) async {
   getValue(key, defaultvalue) {
     try {
       return box.get(key, defaultValue: defaultvalue);
@@ -247,8 +256,9 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg}) async {
 
 class SignPage extends StatefulWidget {
   final Box box;
+  final Box box_client;
   final Tdlib tg;
-  const SignPage({Key? key, required this.box, required this.tg}) : super(key: key);
+  const SignPage({Key? key, required this.box, required this.box_client, required this.tg}) : super(key: key);
 
   @override
   State<SignPage> createState() => _SignPageState();
@@ -1361,11 +1371,7 @@ class _SignPageState extends State<SignPage> {
                           Navigator.pushReplacement<void, void>(
                             context,
                             MaterialPageRoute<void>(
-                              builder: (BuildContext context) => MainPage(
-                                box: widget.box,
-                                get_me: loop_data,
-                                tg: tg,
-                              ),
+                              builder: (BuildContext context) => MainPage(box: widget.box, get_me: loop_data, tg: tg, box_client: widget.box_client),
                             ),
                           );
                           return;
@@ -1378,11 +1384,7 @@ class _SignPageState extends State<SignPage> {
                       Navigator.pushReplacement<void, void>(
                         context,
                         MaterialPageRoute<void>(
-                          builder: (BuildContext context) => MainPage(
-                            box: widget.box,
-                            get_me: get_me,
-                            tg: tg,
-                          ),
+                          builder: (BuildContext context) => MainPage(box: widget.box, get_me: get_me, tg: tg, box_client: widget.box_client),
                         ),
                       );
 
@@ -1577,11 +1579,7 @@ class _SignPageState extends State<SignPage> {
                           Navigator.pushReplacement<void, void>(
                             context,
                             MaterialPageRoute<void>(
-                              builder: (BuildContext context) => MainPage(
-                                box: widget.box,
-                                get_me: loop_data,
-                                tg: tg,
-                              ),
+                              builder: (BuildContext context) => MainPage(box: widget.box, get_me: loop_data, tg: tg, box_client: widget.box_client),
                             ),
                           );
                           return;
@@ -1593,11 +1591,7 @@ class _SignPageState extends State<SignPage> {
                       Navigator.pushReplacement<void, void>(
                         context,
                         MaterialPageRoute<void>(
-                          builder: (BuildContext context) => MainPage(
-                            box: widget.box,
-                            get_me: get_me,
-                            tg: tg,
-                          ),
+                          builder: (BuildContext context) => MainPage(box: widget.box, get_me: get_me, tg: tg, box_client: widget.box_client),
                         ),
                       );
 
@@ -1758,9 +1752,10 @@ class _SignPageState extends State<SignPage> {
 }
 
 class MainPage extends StatefulWidget {
-  final Tdlib tg;
-  const MainPage({Key? key, required this.box, required this.get_me, required this.tg}) : super(key: key);
+  const MainPage({Key? key, required this.box, required this.box_client, required this.get_me, required this.tg}) : super(key: key);
   final Box box;
+  final Tdlib tg;
+  final Box box_client;
   final Map get_me;
   @override
   State<MainPage> createState() => _MainPageState();
@@ -2729,9 +2724,19 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                             print("long tap");
                           },
                           onTap: () async {
-                            setState(() {
-                              setValue("type_page", "chat");
-                            });
+                            await Hive.openBox(res["id"].toString().replaceAll(RegExp(r"-100"), ""), path: tg.optionTdlibDefault["user_path"]);
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (BuildContext context) => ChatPage(
+                                  box: widget.box,
+                                  tg: tg,
+                                  box_client: widget.box_client,
+                                  chat: res,
+                                ),
+                              ),
+                            );
                           },
                           child: Container(
                             padding: const EdgeInsets.all(15),
@@ -2856,6 +2861,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                                         ),
                                       ),
                                     ),
+                                    
                                     Expanded(
                                       child: Padding(
                                         padding: const EdgeInsets.all(10),
