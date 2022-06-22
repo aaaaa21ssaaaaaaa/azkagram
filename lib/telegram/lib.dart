@@ -75,7 +75,6 @@ class ChatPageState extends State<ChatPage> {
     }
     return ScaffoldSimulate(
       isShowTopBar: false,
-      isShowFrame: true,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70),
         child: SafeArea(
@@ -259,6 +258,9 @@ class ChatPageState extends State<ChatPage> {
                     color: Colors.blue,
                     size: 25,
                   ),
+                  onLongPress: (){
+
+                  },
                   onTap: () async {
                     tg.debugRequest(
                       "sendMessage",
