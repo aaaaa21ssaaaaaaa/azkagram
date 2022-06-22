@@ -48,10 +48,12 @@ void main(List<String> args) async {
   for (var i = 0; i < users.length; i++) {
     var loop_data = users[i];
     if (loop_data is Map && loop_data["is_sign"] is bool && loop_data["is_sign"]) {
-      
+      var user_path = "${appSupport.path}/client_${i}/";
       Tdlib tg = Tdlib("libtdjson.so", {
-        'database_directory': "${appSupport.path}/$i/",
-        'files_directory': "${appSupport.path}/$i/",
+        "path_application": appSupport.path,
+        "index_user": i,
+        'database_directory': user_path,
+        'files_directory': user_path,
       });
       tg.on("update", (UpdateTd update) {
         tgUpdate(update, box: box, tg: tg);
@@ -64,9 +66,17 @@ void main(List<String> args) async {
       );
     }
   }
+  var index_user = (users.isEmpty) ? 0 : (users.length + 1);
+  var user_path = "${appSupport.path}/client_${index_user}/";
+  var dir = Directory(user_path);
+  if (await dir.exists()) {
+    dir.deleteSync(recursive: true);
+  }
   Tdlib tg = Tdlib("libtdjson.so", {
-    'database_directory': "${appSupport.path}/${(users.isEmpty) ? 0 : users.length + 1}/",
-    'files_directory': "${appSupport.path}/${(users.isEmpty) ? 0 : users.length + 1}/",
+    "path_application": appSupport.path,
+    "index_user": index_user,
+    'database_directory': user_path,
+    'files_directory': user_path,
   });
 
   tg.on("update", (UpdateTd update) {
@@ -81,7 +91,7 @@ void main(List<String> args) async {
   );
 }
 
-void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg }) async {
+void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg}) async {
   getValue(key, defaultvalue) {
     try {
       return box.get(key, defaultValue: defaultvalue);
@@ -95,6 +105,7 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg }) async {
   }
 
   try {
+    await Future.delayed(const Duration(microseconds: 1));
     if (!update.raw.containsKey("@extra")) {}
     if (update.raw["@type"] is String) {
       var type = update.raw["@type"];
@@ -114,6 +125,10 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg }) async {
           if (authStateType == "authorizationStateWaitPassword") {}
           if (authStateType == "authorizationStateReady") {
             bool is_bot = false;
+            var getMe = await tg.request("getMe");
+            if (getMe["ok"] is bool && getMe["ok"] && getMe["result"] is Map) {
+              is_bot = getMe["result"]["is_bot"];
+            }
 
             if (!is_bot) {
               tg.debugRequest("getChats", callback: (res) {
@@ -199,6 +214,10 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg }) async {
           }
           if (RegExp("/ping", caseSensitive: false).hasMatch(text)) {
             await tg.request("sendMessage", {"chat_id": chat_id, "text": "pong:update"});
+            return;
+          }
+          if (RegExp("/option", caseSensitive: false).hasMatch(text)) {
+            await tg.request("sendMessage", {"chat_id": chat_id, "text": json.encode(tg.optionTdlibDefault)});
             return;
           }
         }
@@ -1787,8 +1806,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     setState(() {
       tg = widget.tg;
     });
-
-
   }
 
   showPopUp([titleName, valueBody]) {
