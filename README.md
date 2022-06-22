@@ -62,7 +62,7 @@ flutter build macos --release
 ```
 
 5. Github action
-
+Jika kalian tidak mempunyai pc, kalian bisa build menggunakan github action
 clone repo saya abis itu tap action lalu jalankan workflows sesuai platform yang ingin anda build
 
 ![Screenshot from 2022-06-22 02-24-08](https://user-images.githubusercontent.com/82513502/174882193-0bca3742-dae4-4b09-b06b-f62b6c5b5af5.png)
