@@ -41,6 +41,9 @@ void main(List<String> args) async {
   Hive.init(appSupport.path);
   debug(appSupport.path);
   Box<dynamic> box = await Hive.openBox('telegram_client');
+
+  Box<dynamic> box_hexaminate = await Hive.openBox("hexaminate");
+  
   Widget typePage;
   List users = box.get("users", defaultValue: []);
   for (var i = 0; i < users.length; i++) {
@@ -3426,7 +3429,16 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                                     contentListSettings("About HexaMinate", onPressed: () async {}, icon: Iconsax.external_drive),
                                     contentListSettings("Blog", onPressed: () async {}, icon: Iconsax.external_drive),
                                     contentListSettings("Shop", onPressed: () async {}, icon: Iconsax.shop),
-                                    contentListSettings("Wallet", onPressed: () async {}, icon: Iconsax.wallet),
+                                    contentListSettings("Wallet", onPressed: () async {
+                                      Navigator.pushReplacement<void, void>(
+                                        context,
+                                        MaterialPageRoute<void>(builder: (BuildContext context) {
+                                          return HexaWalletPage(
+                                            box: widget.box,
+                                          );
+                                        }),
+                                      );
+                                    }, icon: Iconsax.wallet),
                                   ],
                                 ),
                               ),
