@@ -2180,7 +2180,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     }
 
     return ScaffoldSimulate(
-      isShowFrame: true,
+      
       extendBody: true,
       extendBodyBehindAppBar: false,
       backgroundColor: color_page,
