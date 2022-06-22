@@ -63,9 +63,12 @@ flutter build macos --release
 
 5. Github action
 
-clone repo saya abis itu tap action lalu jalankan workflows ini
+clone repo saya abis itu tap action lalu jalankan workflows sesuai platform yang ingin anda build
 
 ![Screenshot from 2022-06-22 02-24-08](https://user-images.githubusercontent.com/82513502/174882193-0bca3742-dae4-4b09-b06b-f62b6c5b5af5.png)
+
+Jika sudah kalian download file nya di summary
+![Screenshot from 2022-06-23 04-26-53](https://user-images.githubusercontent.com/82513502/175141650-9f77cba5-5ebf-4b6f-9bb9-29e30448ea90.png)
 
 
 Note:
