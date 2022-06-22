@@ -129,3 +129,5 @@ Jika sudah kalian copy hasil compile tdlib
 5. iOS
    saya tidak tahu karena saya tidak pakai iOS
 
+
+## Development Cheat Sheet

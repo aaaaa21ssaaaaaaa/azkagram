@@ -2728,7 +2728,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
                             Navigator.push(
                               context,
-                              MaterialPageRoute<void>(
+                              MaterialPageRoute(
                                 builder: (BuildContext context) => ChatPage(
                                   box: widget.box,
                                   tg: tg,

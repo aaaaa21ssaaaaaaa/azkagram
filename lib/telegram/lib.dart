@@ -14,17 +14,29 @@ class ChatPage extends StatefulWidget {
 }
 
 class ChatPageState extends State<ChatPage> {
+  late Tdlib tg;
   final TextEditingController messageController = TextEditingController();
   final ScrollController scrollController = ScrollController();
+  bool isSendText = false;
+  bool isVoice = true;
+
   @override
   void initState() {
     super.initState();
+    setState(() {
+      tg = widget.tg;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    var chat_id = 0;
+    if (widget.chat["id"] is int) {
+      chat_id = widget.chat["id"];
+    }
     var path_image = "";
     var titleBar = "";
+    var chat_type = "";
     if (widget.chat["title"] is String) {
       titleBar = widget.chat["title"];
     } else {
@@ -33,6 +45,10 @@ class ChatPageState extends State<ChatPage> {
         titleBar += " ${widget.chat["first_name"]}";
       }
     }
+    if (widget.chat["type"] is String) {
+      chat_type = widget.chat["type"];
+    }
+    print(isSendText);
     return ScaffoldSimulate(
       isShowTopBar: false,
       isShowFrame: true,
@@ -150,6 +166,9 @@ class ChatPageState extends State<ChatPage> {
                       SizedBox(
                         height: MediaQuery.of(context).padding.top,
                       ),
+                      ...List.generate(50, (index) {
+                        return Padding(padding: EdgeInsets.all(10), child: Text("count $index"));
+                      }),
                     ],
                   );
                   return SingleChildScrollView(
@@ -173,18 +192,21 @@ class ChatPageState extends State<ChatPage> {
           borderRadius: BorderRadius.all(Radius.circular(0)),
           boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 2)],
         ),
-        child: TextFormField(
+        child: TextField(
           minLines: 1,
           maxLines: 5,
           controller: messageController,
           textCapitalization: TextCapitalization.sentences,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          validator: (String? text) {
-            if (text == null || text.isEmpty) {
-              messageController.clear();
+          onChanged: (String? res) {
+            if (res!.isEmpty) {
+              setState(() {
+                isSendText = false;
+              });
+            } else {
+              setState(() {
+                isSendText = true;
+              });
             }
-            print(text);
-            return null;
           },
           decoration: InputDecoration(
             hintText: "Type a message",
@@ -204,7 +226,7 @@ class ChatPageState extends State<ChatPage> {
               ),
             ),
             suffixIcon: chooseWidget(
-              isMain: messageController.text.isNotEmpty,
+              isMain: isSendText,
               main: Padding(
                 padding: const EdgeInsets.all(5),
                 child: InkWell(
@@ -214,8 +236,11 @@ class ChatPageState extends State<ChatPage> {
                     size: 25,
                   ),
                   onTap: () async {
-                    if (messageController.text.isNotEmpty) {
-                    } else {}
+                    tg.debugRequest("sendMessage", parameters: {
+                      "chat_id": chat_id,
+                      "text": messageController.text,
+                      "parse_mode": "markdown"
+                    });
                   },
                 ),
               ),
@@ -224,18 +249,18 @@ class ChatPageState extends State<ChatPage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: InkWell(
-                      child: const Icon(
-                        Iconsax.notification,
-                        color: Colors.blue,
-                        size: 25,
+                  Visibility(
+                    visible: (chat_type == "channel") ? true : false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: InkWell(
+                        child: const Icon(
+                          Iconsax.notification,
+                          color: Colors.blue,
+                          size: 25,
+                        ),
+                        onTap: () async {},
                       ),
-                      onTap: () async {
-                        if (messageController.text.isNotEmpty) {
-                        } else {}
-                      },
                     ),
                   ),
                   Padding(
@@ -255,14 +280,19 @@ class ChatPageState extends State<ChatPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: InkWell(
-                      child: const Icon(
-                        Iconsax.voice_square,
+                      child: Icon(
+                        (isVoice) ? Iconsax.voice_square : Iconsax.video,
                         color: Colors.blue,
                         size: 25,
                       ),
-                      onTap: () async {
-                        if (messageController.text.isNotEmpty) {
+                      onLongPress: () async {
+                        if (isVoice) {
                         } else {}
+                      },
+                      onTap: () async {
+                        setState(() {
+                          isVoice = (isVoice) ? false : true;
+                        });
                       },
                     ),
                   ),
