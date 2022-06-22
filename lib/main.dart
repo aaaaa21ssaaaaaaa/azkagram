@@ -18,7 +18,6 @@ import 'package:simulate/simulate.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'dart:math' as math;
-import 'package:fl_chart/fl_chart.dart';
 
 //
 
@@ -43,32 +42,19 @@ void main(List<String> args) async {
   Box<dynamic> box = await Hive.openBox('telegram_client');
 
   Box<dynamic> box_hexaminate = await Hive.openBox("hexaminate");
-  
+
   Widget typePage;
   List users = box.get("users", defaultValue: []);
   for (var i = 0; i < users.length; i++) {
     var loop_data = users[i];
     if (loop_data is Map && loop_data["is_sign"] is bool && loop_data["is_sign"]) {
+      
       Tdlib tg = Tdlib("libtdjson.so", {
         'database_directory': "${appSupport.path}/$i/",
         'files_directory': "${appSupport.path}/$i/",
       });
       tg.on("update", (UpdateTd update) {
-        try {
-          if (update.raw["@type"] is String) {
-            var type = update.raw["@type"];
-            if (type == "error") {
-              if (RegExp(r"^Can't lock file", caseSensitive: false).hasMatch(update.raw["message"])) {
-                if (kDebugMode) {
-                  print("eror");
-                }
-                exit(1);
-              }
-            }
-          }
-        } catch (e) {
-          debug(e);
-        }
+        tgUpdate(update, box: box, tg: tg);
       });
       await tg.initIsolate();
       typePage = MainPage(box: box, get_me: loop_data, tg: tg);
@@ -84,21 +70,7 @@ void main(List<String> args) async {
   });
 
   tg.on("update", (UpdateTd update) {
-    try {
-      if (update.raw["@type"] is String) {
-        var type = update.raw["@type"];
-        if (type == "error") {
-          if (RegExp(r"^Can't lock file", caseSensitive: false).hasMatch(update.raw["message"])) {
-            if (kDebugMode) {
-              print("eror");
-            }
-            exit(1);
-          }
-        }
-      }
-    } catch (e) {
-      debug(e);
-    }
+    tgUpdate(update, box: box, tg: tg);
   });
 
   await tg.initIsolate();
@@ -107,6 +79,151 @@ void main(List<String> args) async {
     home: typePage,
     debugShowCheckedModeBanner: false,
   );
+}
+
+void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg }) async {
+  getValue(key, defaultvalue) {
+    try {
+      return box.get(key, defaultValue: defaultvalue);
+    } catch (e) {
+      return defaultvalue;
+    }
+  }
+
+  setValue(key, value) {
+    return box.put(key, value);
+  }
+
+  try {
+    if (!update.raw.containsKey("@extra")) {}
+    if (update.raw["@type"] is String) {
+      var type = update.raw["@type"];
+      if (type == "error") {
+        if (RegExp(r"^Can't lock file", caseSensitive: false).hasMatch(update.raw["message"])) {
+          if (kDebugMode) {
+            print("eror");
+          }
+          exit(1);
+        }
+      }
+      if (type == "updateAuthorizationState") {
+        if (update.raw["authorization_state"] is Map) {
+          var authStateType = update.raw["authorization_state"]["@type"];
+          if (authStateType == "authorizationStateWaitPhoneNumber") {}
+          if (authStateType == "authorizationStateWaitCode") {}
+          if (authStateType == "authorizationStateWaitPassword") {}
+          if (authStateType == "authorizationStateReady") {
+            bool is_bot = false;
+
+            if (!is_bot) {
+              tg.debugRequest("getChats", callback: (res) {
+                if (res["ok"]) {
+                  var result = res["result"] as List;
+                  setValue("chats", result);
+                }
+              });
+            }
+          }
+
+          if (authStateType == "authorizationStateClosing") {}
+
+          if (authStateType == "authorizationStateClosed") {}
+
+          if (authStateType == "authorizationStateLoggingOut") {}
+        }
+      }
+
+      if (type == "updateFile") {
+        prettyPrintJson(update.raw);
+      }
+
+      if (type == "updateConnectionState") {
+        if (update.raw["state"]["@type"] == "connectionStateConnecting") {
+          setValue("is_no_connection", true);
+        }
+      }
+
+      var update_api = await update.raw_api;
+      if (update_api["update_channel_post"] is Map) {
+        var msg = update_api["update_channel_post"];
+        var chat_id = msg["chat"]["id"];
+        var text = msg["text"];
+        var is_outgoing = false;
+        if (msg["is_outgoing"] is bool && msg["is_outgoing"]) {
+          is_outgoing = msg["is_outgoing"];
+        }
+        if (text is String && text.isNotEmpty) {
+          if (kDebugMode) {
+            print(text);
+          }
+          if (RegExp("/ping", caseSensitive: false).hasMatch(text)) {
+            await tg.request("sendMessage", {"chat_id": chat_id, "text": "pong"});
+            return;
+          }
+        }
+        List chats = getValue("chats", []);
+        bool is_found = false;
+        for (var i = 0; i < chats.length; i++) {
+          var loop_data = chats[i];
+          if (loop_data is Map && loop_data["id"] == chat_id) {
+            is_found = true;
+            chats.removeAt(i);
+            Map chat = msg["chat"];
+            chats.insert(0, {...chat, "last_message": msg});
+            setValue("chats", chats);
+          }
+        }
+        if (!is_found) {
+          Map chat = msg["chat"];
+          chats.insert(0, {...chat, "last_message": msg});
+          setValue("chats", chats);
+        }
+      }
+      if (update_api["update_message"] is Map) {
+        var msg = update_api["update_message"];
+        var text = msg["text"];
+        var caption = msg["caption"];
+        var msg_id = msg["message_id"];
+        var user_id = msg["from"]["id"];
+        var chat_id = msg["chat"]["id"];
+        var from_id = msg["from"]["id"];
+        var is_outgoing = false;
+        if (msg["is_outgoing"] is bool && msg["is_outgoing"]) {
+          is_outgoing = msg["is_outgoing"];
+        }
+
+        if (text is String && text.isNotEmpty) {
+          if (RegExp("/json", caseSensitive: false).hasMatch(text)) {
+            await tg.request("sendMessage", {"chat_id": chat_id, "text": "ID: ${msg["message_id"]}\nApi: ${msg["api_message_id"]}"});
+            return;
+          }
+          if (RegExp("/ping", caseSensitive: false).hasMatch(text)) {
+            await tg.request("sendMessage", {"chat_id": chat_id, "text": "pong:update"});
+            return;
+          }
+        }
+        List chats = getValue("chats", []);
+        bool is_found = false;
+        for (var i = 0; i < chats.length; i++) {
+          var loop_data = chats[i];
+          if (loop_data is Map && loop_data["id"] == chat_id) {
+            is_found = true;
+            chats.removeAt(i);
+            Map chat = msg["chat"];
+            chats.insert(0, {...chat, "last_message": msg});
+            setValue("chats", chats);
+          }
+        }
+        if (!is_found) {
+          Map chat = msg["chat"];
+          chats.insert(0, {...chat, "last_message": msg});
+          setValue("chats", chats);
+        }
+      }
+    }
+  } catch (e) {
+    debug(e);
+  }
 }
 
 class SignPage extends StatefulWidget {
@@ -1671,148 +1788,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
       tg = widget.tg;
     });
 
-    tg.on("update", (UpdateTd update) async {
-      try {
-        if (!update.raw.containsKey("@extra")) {}
-        if (update.raw["@type"] is String) {
-          var type = update.raw["@type"];
 
-          if (type == "updateAuthorizationState") {
-            if (update.raw["authorization_state"] is Map) {
-              var authStateType = update.raw["authorization_state"]["@type"];
-              if (authStateType == "authorizationStateWaitPhoneNumber") {}
-              if (authStateType == "authorizationStateWaitCode") {}
-              if (authStateType == "authorizationStateWaitPassword") {}
-              if (authStateType == "authorizationStateReady") {
-                bool is_bot = false;
-                if (widget.get_me["is_bot"] is bool) {
-                  is_bot = widget.get_me["is_bot"];
-                }
-
-                if (!is_bot) {
-                  tg.debugRequest("getChats", callback: (res) {
-                    if (res["ok"]) {
-                      var result = res["result"] as List;
-                      setValue("chats", result);
-                    }
-                  });
-                }
-              }
-
-              if (authStateType == "authorizationStateClosing") {}
-
-              if (authStateType == "authorizationStateClosed") {}
-
-              if (authStateType == "authorizationStateLoggingOut") {}
-            }
-          }
-
-          if (type == "updateFile") {
-            prettyPrintJson(update.raw);
-          }
-
-          if (type == "updateConnectionState") {
-            if (update.raw["state"]["@type"] == "connectionStateConnecting") {
-              setState(() {
-                is_no_connection = true;
-              });
-            }
-          }
-
-          var update_api = await update.raw_api;
-          if (update_api["update_channel_post"] is Map) {
-            var msg = update_api["update_channel_post"];
-            var chat_id = msg["chat"]["id"];
-            var text = msg["text"];
-            var is_outgoing = false;
-            if (msg["is_outgoing"] is bool && msg["is_outgoing"]) {
-              is_outgoing = msg["is_outgoing"];
-            }
-            if (text is String && text.isNotEmpty) {
-              if (kDebugMode) {
-                print(text);
-              }
-              if (RegExp("/ping", caseSensitive: false).hasMatch(text)) {
-                return await tg.request("sendMessage", {"chat_id": chat_id, "text": "pong"});
-              }
-            }
-            List chats = getValue("chats", []);
-            bool is_found = false;
-            for (var i = 0; i < chats.length; i++) {
-              var loop_data = chats[i];
-              if (loop_data is Map && loop_data["id"] == chat_id) {
-                is_found = true;
-                chats.removeAt(i);
-                Map chat = msg["chat"];
-                chats.insert(0, {...chat, "last_message": msg});
-                setValue("chats", chats);
-              }
-            }
-            if (!is_found) {
-              Map chat = msg["chat"];
-              chats.insert(0, {...chat, "last_message": msg});
-              setValue("chats", chats);
-            }
-          }
-          if (update_api["update_message"] is Map) {
-            var msg = update_api["update_message"];
-            var text = msg["text"];
-            var caption = msg["caption"];
-            var msg_id = msg["message_id"];
-            var user_id = msg["from"]["id"];
-            var chat_id = msg["chat"]["id"];
-            var from_id = msg["from"]["id"];
-            var is_outgoing = false;
-            if (msg["is_outgoing"] is bool && msg["is_outgoing"]) {
-              is_outgoing = msg["is_outgoing"];
-            }
-
-            if (text is String && text.isNotEmpty) {
-              if (RegExp("/json", caseSensitive: false).hasMatch(text)) {
-                return await tg.request("sendMessage", {"chat_id": chat_id, "text": "ID: ${msg["message_id"]}\nApi: ${msg["api_message_id"]}"});
-              }
-              if (RegExp("/ping", caseSensitive: false).hasMatch(text)) {
-                return await tg.request("sendMessage", {"chat_id": chat_id, "text": "pong"});
-              }
-              if (RegExp("/screen", caseSensitive: false).hasMatch(text)) {
-                await tg.request("sendMessage", {"chat_id": chat_id, "text": "pong"});
-                await Future.delayed(const Duration(microseconds: 1));
-                RenderRepaintBoundary boundary = globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-
-                ui.Image image = await boundary.toImage();
-                ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-                Uint8List pngBytes = byteData!.buffer.asUint8List();
-                var file = File("/home/hexaminate/photo.png");
-                await file.writeAsBytes(pngBytes);
-                if (kDebugMode) {
-                  print("oke");
-                }
-                await Future.delayed(const Duration(microseconds: 1));
-              }
-            }
-            List chats = getValue("chats", []);
-            bool is_found = false;
-            for (var i = 0; i < chats.length; i++) {
-              var loop_data = chats[i];
-              if (loop_data is Map && loop_data["id"] == chat_id) {
-                is_found = true;
-                chats.removeAt(i);
-                Map chat = msg["chat"];
-                chats.insert(0, {...chat, "last_message": msg});
-                setValue("chats", chats);
-              }
-            }
-            if (!is_found) {
-              Map chat = msg["chat"];
-              chats.insert(0, {...chat, "last_message": msg});
-              setValue("chats", chats);
-            }
-          }
-        }
-      } catch (e) {
-        debug(e);
-      }
-    });
   }
 
   showPopUp([titleName, valueBody]) {
@@ -1822,6 +1798,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
         return Padding(
           padding: const EdgeInsets.all(50),
           child: ScaffoldSimulate(
+            isShowFrame: false,
             backgroundColor: Colors.transparent,
             primary: false,
             body: Builder(builder: (BuildContext context) {
@@ -2225,7 +2202,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                     Padding(
                       padding: const EdgeInsets.all(15),
                       child: Row(
-                        children: const [
+                        children: [
                           Text(
                             "AzkaGram",
                             style: TextStyle(
@@ -2234,8 +2211,14 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                             ),
                           ),
                           Spacer(),
-                          Icon(
-                            Iconsax.search_normal,
+                          InkWell(
+                            borderRadius: BorderRadius.all(Radius.circular(10)),
+                            onTap: () {},
+                            child: Padding(
+                                padding: EdgeInsets.all(5),
+                                child: Icon(
+                                  Iconsax.search_normal,
+                                )),
                           ),
                         ],
                       ),
@@ -2723,161 +2706,68 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                       }
                       return Padding(
                         padding: const EdgeInsets.all(10),
-                        child: Container(
-                          padding: const EdgeInsets.all(15),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(25),
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(1),
-                                spreadRadius: 1,
-                                blurRadius: 7,
-                                offset: const Offset(0, 3), // changes position of shadow
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Visibility(
-                                visible: isFile,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 15),
-                                  child: Stack(
-                                    children: [
-                                      Container(
-                                        width: MediaQuery.of(context).size.width,
-                                        height: 200,
-                                        decoration: BoxDecoration(
-                                          borderRadius: const BorderRadius.all(Radius.circular(20)),
-                                          image: DecorationImage(fit: BoxFit.cover, image: Image.file(File(content)).image),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.grey.withOpacity(1),
-                                              spreadRadius: 1,
-                                              blurRadius: 7,
-                                              offset: const Offset(0, 3), // changes position of shadow
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 15,
-                                        right: 15,
-                                        child: Container(
-                                          constraints: const BoxConstraints(
-                                            maxWidth: double.infinity,
-                                            maxHeight: double.infinity,
-                                          ),
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: const ui.Color.fromARGB(199, 158, 158, 158),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Text(
-                                            chat_type,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.all(Radius.circular(25)),
+                          onLongPress: () async {
+                            print("long tap");
+                          },
+                          onTap: () async {
+                            setState(() {
+                              setValue("type_page", "chat");
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(25),
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(1),
+                                  spreadRadius: 1,
+                                  blurRadius: 7,
+                                  offset: const Offset(0, 3), // changes position of shadow
                                 ),
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  chooseWidget(
-                                    isMain: path_image.isNotEmpty,
-                                    main: Container(
-                                      width: 50,
-                                      height: 50,
-                                      decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.all(Radius.circular(15)),
-                                        image: DecorationImage(fit: BoxFit.cover, image: Image.file(File(path_image)).image),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.grey.withOpacity(1),
-                                            spreadRadius: 1,
-                                            blurRadius: 7,
-                                            offset: const Offset(0, 3), // changes position of shadow
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    second: Container(
-                                      width: 50,
-                                      height: 50,
-                                      decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.all(Radius.circular(15)),
-                                        color: Colors.yellow,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.grey.withOpacity(1),
-                                            spreadRadius: 1,
-                                            blurRadius: 7,
-                                            offset: const Offset(0, 3), // changes position of shadow
-                                          ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          nick_name[0],
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w800,
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Visibility(
+                                  visible: isFile,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 15),
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          width: MediaQuery.of(context).size.width,
+                                          height: 200,
+                                          decoration: BoxDecoration(
+                                            borderRadius: const BorderRadius.all(Radius.circular(20)),
+                                            image: DecorationImage(fit: BoxFit.cover, image: Image.file(File(content)).image),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey.withOpacity(1),
+                                                spreadRadius: 1,
+                                                blurRadius: 7,
+                                                offset: const Offset(0, 3), // changes position of shadow
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            nick_name,
-                                            style: const TextStyle(
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                          const SizedBox(
-                                            height: 5,
-                                          ),
-                                          Text(
-                                            (date is int) ? date.toString() : "",
-                                            maxLines: 2,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Container(
+                                        Positioned(
+                                          top: 15,
+                                          right: 15,
+                                          child: Container(
                                             constraints: const BoxConstraints(
                                               maxWidth: double.infinity,
                                               maxHeight: double.infinity,
                                             ),
-                                            padding: const EdgeInsets.all(5),
+                                            padding: const EdgeInsets.all(8),
                                             decoration: BoxDecoration(
-                                              color: const ui.Color.fromARGB(198, 0, 0, 0),
-                                              borderRadius: BorderRadius.circular(5),
+                                              color: const ui.Color.fromARGB(199, 158, 158, 158),
+                                              borderRadius: BorderRadius.circular(10),
                                             ),
                                             child: Text(
                                               chat_type,
@@ -2888,52 +2778,165 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                                               ),
                                             ),
                                           ),
-                                          const SizedBox(
-                                            height: 5,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    InkWell(
+                                      borderRadius: BorderRadius.all(Radius.circular(25)),
+                                      onLongPress: () async {
+                                        print("photo profile");
+                                      },
+                                      onTap: () async {
+                                        print("photo profile");
+                                      },
+                                      child: chooseWidget(
+                                        isMain: path_image.isNotEmpty,
+                                        main: Container(
+                                          width: 50,
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            borderRadius: const BorderRadius.all(Radius.circular(15)),
+                                            image: DecorationImage(fit: BoxFit.cover, image: Image.file(File(path_image)).image),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey.withOpacity(1),
+                                                spreadRadius: 1,
+                                                blurRadius: 7,
+                                                offset: const Offset(0, 3), // changes position of shadow
+                                              ),
+                                            ],
                                           ),
-                                          Container(
-                                            constraints: const BoxConstraints(
-                                              maxWidth: double.infinity,
-                                              maxHeight: double.infinity,
-                                            ),
-                                            padding: const EdgeInsets.all(5),
-                                            decoration: BoxDecoration(
-                                              color: const ui.Color.fromARGB(198, 0, 0, 0),
-                                              borderRadius: BorderRadius.circular(5),
-                                            ),
+                                        ),
+                                        second: Container(
+                                          width: 50,
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            borderRadius: const BorderRadius.all(Radius.circular(15)),
+                                            color: Colors.yellow,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey.withOpacity(1),
+                                                spreadRadius: 1,
+                                                blurRadius: 7,
+                                                offset: const Offset(0, 3), // changes position of shadow
+                                              ),
+                                            ],
+                                          ),
+                                          child: Center(
                                             child: Text(
-                                              (last_message["is_outgoing"] is bool && last_message["is_outgoing"]) ? "Outgoing" : "Incomming",
+                                              nick_name[0],
                                               style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 15,
+                                                fontWeight: FontWeight.w800,
                                               ),
                                             ),
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              Visibility(
-                                visible: message.isNotEmpty,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(5),
-                                  child: Text(
-                                    message,
-                                    style: const TextStyle(
-                                      color: ui.Color.fromARGB(255, 48, 48, 48),
-                                      fontWeight: FontWeight.w800,
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              nick_name,
+                                              style: const TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 5,
+                                            ),
+                                            Text(
+                                              (date is int) ? date.toString() : "",
+                                              maxLines: 2,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                    maxLines: 4,
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: double.infinity,
+                                                maxHeight: double.infinity,
+                                              ),
+                                              padding: const EdgeInsets.all(5),
+                                              decoration: BoxDecoration(
+                                                color: const ui.Color.fromARGB(198, 0, 0, 0),
+                                                borderRadius: BorderRadius.circular(5),
+                                              ),
+                                              child: Text(
+                                                chat_type,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 5,
+                                            ),
+                                            Container(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: double.infinity,
+                                                maxHeight: double.infinity,
+                                              ),
+                                              padding: const EdgeInsets.all(5),
+                                              decoration: BoxDecoration(
+                                                color: const ui.Color.fromARGB(198, 0, 0, 0),
+                                                borderRadius: BorderRadius.circular(5),
+                                              ),
+                                              child: Text(
+                                                (last_message["is_outgoing"] is bool && last_message["is_outgoing"]) ? "Outgoing" : "Incomming",
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Visibility(
+                                  visible: message.isNotEmpty,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(5),
+                                    child: Text(
+                                      message,
+                                      style: const TextStyle(
+                                        color: ui.Color.fromARGB(255, 48, 48, 48),
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 4,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(
-                                height: 10,
-                              ),
-                            ],
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -3547,6 +3550,7 @@ void debugPopUp(BuildContext context, var res, {bool is_log = false}) {
       return Padding(
         padding: const EdgeInsets.all(50),
         child: ScaffoldSimulate(
+          isShowFrame: false,
           backgroundColor: Colors.transparent,
           primary: false,
           body: Builder(

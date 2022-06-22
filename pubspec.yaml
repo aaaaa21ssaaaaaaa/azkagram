@@ -22,7 +22,6 @@ dependencies:
   simulate: ^0.0.7
   pull_to_refresh: ^2.0.0
   hidable: ^1.0.2
-  fl_chart: ^0.36.2
   ffmpeg_cli: ^0.1.0
   flutter_markdown: ^0.6.10+2
   cross_file: ^0.3.3+1
