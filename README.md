@@ -70,12 +70,12 @@ clone repo saya abis itu tap action lalu jalankan workflows sesuai platform yang
 Jika sudah kalian download file nya di summary
 ![Screenshot from 2022-06-23 04-26-53](https://user-images.githubusercontent.com/82513502/175141650-9f77cba5-5ebf-4b6f-9bb9-29e30448ea90.png)
 
-
 Note:
 Jika build gagal karena library telegram_client
 kalian ganti library telegram_client ganti ke versi latest
 `telegram_client: ^0.3.5`
 
+https://youtu.be/SQssRqqE0yo
 
 ## Development
 
