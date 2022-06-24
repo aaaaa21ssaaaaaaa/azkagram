@@ -247,6 +247,8 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Bo
           chats.insert(0, {...chat, "last_message": msg});
           setValue("chats", chats);
         }
+
+        
       }
     }
   } catch (e) {

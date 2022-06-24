@@ -28,6 +28,7 @@ dependencies:
   brainly: ^0.0.1
   flame: ^1.2.0
   translator: ^0.1.7
+  shimmer: ^2.0.0
   
 dev_dependencies:
   flutter_test:
