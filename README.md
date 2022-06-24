@@ -79,6 +79,33 @@ kalian ganti library telegram_client ganti ke versi latest
 
 https://youtu.be/SQssRqqE0yo
 
+## Release Application
+
+Jika kalian ingin release azkagram versi kalian kalian harus ikut rules:
+
+1. Nama App & id app Harus beda
+
+Install dulu package rename di global
+```bash
+dart pub global activate rename
+```
+Rubah nama
+
+```bash
+dart pub global run rename --appname "Your Gram"
+```
+Rubah ID
+
+```bash
+dart pub global run rename --bundleId com.yourgram.app
+```
+   
+2. app_id & app_hash harus di ganti
+  
+3. icon application harus ganti
+
+
+
 ## Development
 
 1. Clone Project
