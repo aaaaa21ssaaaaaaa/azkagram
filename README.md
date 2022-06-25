@@ -100,11 +100,8 @@ Rubah ID
 dart pub global run rename --bundleId com.yourgram.app
 ```
    
-2. app_id & app_hash harus di ganti
-  
-3. icon application harus ganti
-
-
+2. ganti app_id & app_hash
+lib/config.dart
 
 ## Development
 

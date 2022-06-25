@@ -21,6 +21,8 @@ import 'dart:math' as math;
 
 //
 
+part 'config.dart';
+
 part 'hexaminate_app/lib.dart';
 part 'telegram/lib.dart';
 part 'games/lib.dart';
@@ -51,6 +53,8 @@ void main(List<String> args) async {
       var user_path = "${appSupport.path}/client_$i/";
       Box<dynamic> box_client = await Hive.openBox("client", path: user_path);
       Tdlib tg = Tdlib("libtdjson.so", {
+    'api_id': Config.appId,
+    'api_hash': Config.apphash,
         "path_application": appSupport.path,
         "index_user": i,
         'database_directory': user_path,
@@ -81,6 +85,8 @@ void main(List<String> args) async {
   }
   Box<dynamic> box_client = await Hive.openBox("client", path: user_path);
   Tdlib tg = Tdlib("libtdjson.so", {
+    'api_id': Config.appId,
+    'api_hash': Config.apphash,
     "path_application": appSupport.path,
     "index_user": index_user,
     'database_directory': user_path,
@@ -247,8 +253,6 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Bo
           chats.insert(0, {...chat, "last_message": msg});
           setValue("chats", chats);
         }
-
-        
       }
     }
   } catch (e) {
@@ -2182,7 +2186,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     }
 
     return ScaffoldSimulate(
-      
       extendBody: true,
       extendBodyBehindAppBar: false,
       backgroundColor: color_page,
@@ -2218,19 +2221,19 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                       child: Row(
                         children: [
                           Text(
-                            "AzkaGram",
-                            style: TextStyle(
+                            Config.nameApplication,
+                            style: const TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          Spacer(),
+                          const Spacer(),
                           InkWell(
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
+                            borderRadius: const BorderRadius.all(Radius.circular(10)),
                             onTap: () {},
-                            child: Padding(
+                            child: const Padding(
                                 padding: EdgeInsets.all(5),
-                                child: Icon(
+                                child: const Icon(
                                   Iconsax.search_normal,
                                 )),
                           ),
@@ -2721,7 +2724,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                       return Padding(
                         padding: const EdgeInsets.all(10),
                         child: InkWell(
-                          borderRadius: BorderRadius.all(Radius.circular(25)),
+                          borderRadius: const BorderRadius.all(const Radius.circular(25)),
                           onLongPress: () async {
                             print("long tap");
                           },
@@ -2812,7 +2815,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     InkWell(
-                                      borderRadius: BorderRadius.all(Radius.circular(25)),
+                                      borderRadius: const BorderRadius.all(Radius.circular(25)),
                                       onLongPress: () async {
                                         print("photo profile");
                                       },
@@ -2863,7 +2866,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                                         ),
                                       ),
                                     ),
-                                    
                                     Expanded(
                                       child: Padding(
                                         padding: const EdgeInsets.all(10),
@@ -3361,7 +3363,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                           ),
                         ),
                         TabBar(
-                          physics: AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          physics: const AlwaysScrollableScrollPhysics(parent: const BouncingScrollPhysics()),
                           controller: _tabController,
                           labelColor: Colors.black,
                           unselectedLabelColor: Colors.grey.shade600,
@@ -3381,7 +3383,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                         ),
                         ...[
                           [
-                            Center(
+                            const Center(
                               child: Text("Hello world"),
                             ),
                           ],
