@@ -1334,26 +1334,35 @@ class _SignPageState extends State<SignPage> {
                       }
                       bytesQrCode = img.encodePng(image);
                     }
-                    var imgQr = Image.memory(Uint8List.fromList(bytesQrCode));
+                    late Image imgQr;
+                    try {
+                      imgQr = Image.memory(Uint8List.fromList(bytesQrCode));
+                    } catch (e) {}
                     return Padding(
                       padding: const EdgeInsets.all(20),
-                      child: Container(
-                        height: imgQr.height,
-                        width: MediaQuery.of(context).size.width,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(1),
-                              spreadRadius: 1,
-                              blurRadius: 7,
-                              offset: const Offset(0, 3), // changes position of shadow
-                            ),
-                          ],
+                      child: chooseWidget(
+                        isMain: bytesQrCode.isNotEmpty,
+                        main: Container(
+                          height: imgQr.height,
+                          width: MediaQuery.of(context).size.width,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(1),
+                                spreadRadius: 1,
+                                blurRadius: 7,
+                                offset: const Offset(0, 3), // changes position of shadow
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(15),
+                          child: Image(image: imgQr.image),
                         ),
-                        padding: const EdgeInsets.all(15),
-                        child: Image(image: imgQr.image),
+                        second: Center( 
+                          child: CircularProgressIndicator(color: Colors.black),
+                        ),
                       ),
                     );
                   }),
@@ -2762,7 +2771,9 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                       if (res["type"] == "private") {
                         nick_name = res["first_name"];
                       } else {
-                        nick_name = res["title"];
+                        if (res['title'] is String) {
+                          nick_name = res["title"];
+                        }
                       }
                       if (res["detail"] is Map) {
                         if (res["detail"]["unread_count"] is int) {
