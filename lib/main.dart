@@ -146,7 +146,7 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Bo
             if (getMe["ok"] is bool && getMe["ok"] && getMe["result"] is Map) {
               is_bot = getMe["result"]["is_bot"];
             }
-
+            setValue("is_login", true);
             if (!is_bot) {
               tg.debugRequest("getChats", callback: (res) {
                 if (res["ok"]) {
@@ -426,6 +426,36 @@ class _SignPageState extends State<SignPage> {
       body: ValueListenableBuilder(
         valueListenable: Hive.box('telegram_client').listenable(),
         builder: (context, Box box, widgets) {
+          var is_login = box.get("is_login", defaultValue: false);
+          if (is_login is bool && is_login) {
+            tg.debugRequest("getMe", callback: (get_me) {
+              List getUsers = getValue("users", defaultValue: []);
+              for (var i = 0; i < getUsers.length; i++) {
+                var loop_data = getUsers[i];
+                if (loop_data is Map && loop_data["id"] == get_me["result"]["id"]) {
+                  getUsers[i]["is_sign"] = true;
+                  setValue("users", getUsers);
+                  Navigator.pushReplacement<void, void>(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (BuildContext context) => MainPage(box: widget.box, get_me: loop_data, tg: tg, box_client: widget.box_client),
+                    ),
+                  );
+                  return;
+                }
+              }
+              get_me["result"]["is_sign"] = true;
+              getUsers.add(get_me["result"]);
+              setValue("users", getUsers);
+
+              Navigator.pushReplacement<void, void>(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (BuildContext context) => MainPage(box: widget.box, get_me: get_me, tg: tg, box_client: widget.box_client),
+                ),
+              );
+            });
+          }
           return LayoutBuilder(builder: (BuildContext ctx, constraints) {
             Widget type_sign_page = Center(
               child: TextButton(
@@ -1283,7 +1313,7 @@ class _SignPageState extends State<SignPage> {
                       child: CircularProgressIndicator(),
                     ),
                   ),
-                  ...titlePage("QRCODE", "Please typing your phone number"),
+                  ...titlePage("QRCODE", "Scan code ini di app telegram ya"),
                   const SizedBox(
                     height: 20,
                   ),
@@ -1311,7 +1341,7 @@ class _SignPageState extends State<SignPage> {
                         height: imgQr.height,
                         width: MediaQuery.of(context).size.width,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(0),
+                          borderRadius: BorderRadius.circular(10),
                           color: Colors.white,
                           boxShadow: [
                             BoxShadow(
@@ -1327,40 +1357,6 @@ class _SignPageState extends State<SignPage> {
                       ),
                     );
                   }),
-                  Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: MaterialButton(
-                      onPressed: () async {
-                        try {
-                          var res = await tg.request("setAuthenticationPhoneNumber", {
-                            "phone_number": phoneNumberTextController.text,
-                          });
-
-                          debug(res);
-                        } catch (e) {
-                          debug(e);
-                        }
-                      },
-                      color: Colors.blue,
-                      height: 50,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      padding: const EdgeInsets.only(
-                        left: 25,
-                        right: 25,
-                      ),
-                      child: const Center(
-                        child: Text(
-                          "Send Code",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     child: Row(
