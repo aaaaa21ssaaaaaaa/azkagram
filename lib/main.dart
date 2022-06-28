@@ -17,6 +17,8 @@ import 'package:telegram_client/telegram_client.dart';
 import 'package:simulate/simulate.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:image/image.dart' as img;
+import 'package:zxing2/qrcode.dart';
 import 'dart:math' as math;
 
 //
@@ -53,8 +55,8 @@ void main(List<String> args) async {
       var user_path = "${appSupport.path}/client_$i/";
       Box<dynamic> box_client = await Hive.openBox("client", path: user_path);
       Tdlib tg = Tdlib("libtdjson.so", {
-    'api_id': Config.appId,
-    'api_hash': Config.apphash,
+        'api_id': Config.appId,
+        'api_hash': Config.apphash,
         "path_application": appSupport.path,
         "index_user": i,
         'database_directory': user_path,
@@ -160,6 +162,9 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Bo
           if (authStateType == "authorizationStateClosed") {}
 
           if (authStateType == "authorizationStateLoggingOut") {}
+          if (authStateType == "authorizationStateWaitOtherDeviceConfirmation") {
+            setValue("qr", update.raw["authorization_state"]["link"]);
+          }
         }
       }
 
@@ -418,1341 +423,1488 @@ class _SignPageState extends State<SignPage> {
 
     return ScaffoldSimulate(
       backgroundColor: const Color.fromARGB(255, 235, 234, 255),
-      body: LayoutBuilder(builder: (BuildContext ctx, constraints) {
-        Widget type_sign_page = Center(
-          child: TextButton(
-            onPressed: () {
-              setState(() {
-                usernameTextController.clear();
-                passwordTextController.clear();
-                state_data["type_page"] = "signin";
-                setValue("state_data_sign", state_data);
-              });
-            },
-            child: const Text(
-              'Reset',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 14.0,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-        );
-        List<Widget> usernameField() {
-          return [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(1),
-                      spreadRadius: 1,
-                      blurRadius: 7,
-                      offset: const Offset(0, 3), // changes position of shadow
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(15),
-                child: TextFormField(
-                  cursorColor: Colors.black,
-                  controller: usernameTextController,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: (String? text) {
-                    if (text == null || text.isEmpty) {
-                      return 'Can\'t be empty';
-                    }
-
-                    if (!RegExp(r"^[a-z]+$", caseSensitive: false).hasMatch(text)) {
-                      return "Tolong isi username dengan benar ya! contoh: azka";
-                    }
-                    if (kDebugMode) {
-                      print(text);
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(0.0),
-                    hintText: 'username',
-                    labelText: "Username",
-                    labelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14.0,
-                    ),
-                    prefixIcon: const Icon(
-                      Iconsax.profile_2user,
-                      color: Colors.black,
-                      size: 18,
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
+      body: ValueListenableBuilder(
+        valueListenable: Hive.box('telegram_client').listenable(),
+        builder: (context, Box box, widgets) {
+          return LayoutBuilder(builder: (BuildContext ctx, constraints) {
+            Widget type_sign_page = Center(
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    usernameTextController.clear();
+                    passwordTextController.clear();
+                    state_data["type_page"] = "signin";
+                    setValue("state_data_sign", state_data);
+                  });
+                },
+                child: const Text(
+                  'Reset',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
-            ),
-          ];
-        }
+            );
+            List<Widget> usernameField() {
+              return [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(1),
+                          spreadRadius: 1,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3), // changes position of shadow
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(15),
+                    child: TextFormField(
+                      cursorColor: Colors.black,
+                      controller: usernameTextController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (String? text) {
+                        if (text == null || text.isEmpty) {
+                          return 'Can\'t be empty';
+                        }
 
-        List<Widget> phoneNumberField() {
-          return [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(1),
-                      spreadRadius: 1,
-                      blurRadius: 7,
-                      offset: const Offset(0, 3), // changes position of shadow
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(15),
-                child: TextFormField(
-                  cursorColor: Colors.black,
-                  controller: phoneNumberTextController,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  validator: (String? text) {
-                    if (text == null || text.isEmpty) {
-                      return 'Can\'t be empty';
-                    }
-
-                    if (!RegExp(r"^[0-9]+$", caseSensitive: false).hasMatch(text)) {
-                      return "Tolong isi dengan angka ya!";
-                    }
-                    if (text.length < 5) {
-                      return "Tolong isi dengan benar ya!";
-                    }
-                    print(text);
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(0.0),
-                    hintText: '62xxxxxxxxx',
-                    labelText: "Phone Number",
-                    labelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14.0,
-                    ),
-                    prefixIcon: const Icon(
-                      Iconsax.card,
-                      color: Colors.black,
-                      size: 18,
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
+                        if (!RegExp(r"^[a-z]+$", caseSensitive: false).hasMatch(text)) {
+                          return "Tolong isi username dengan benar ya! contoh: azka";
+                        }
+                        if (kDebugMode) {
+                          print(text);
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.all(0.0),
+                        hintText: 'username',
+                        labelText: "Username",
+                        labelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.0,
+                        ),
+                        prefixIcon: const Icon(
+                          Iconsax.profile_2user,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        floatingLabelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18.0,
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ];
-        }
+              ];
+            }
 
-        List<Widget> tokenBotField() {
-          return [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(1),
-                      spreadRadius: 1,
-                      blurRadius: 7,
-                      offset: const Offset(0, 3), // changes position of shadow
+            List<Widget> phoneNumberField() {
+              return [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(1),
+                          spreadRadius: 1,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3), // changes position of shadow
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(15),
-                child: TextFormField(
-                  cursorColor: Colors.black,
-                  controller: tokenBotTextController,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: (String? text) {
-                    if (text == null || text.isEmpty) {
-                      return 'Can\'t be empty';
-                    }
+                    padding: const EdgeInsets.all(15),
+                    child: TextFormField(
+                      cursorColor: Colors.black,
+                      controller: phoneNumberTextController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      validator: (String? text) {
+                        if (text == null || text.isEmpty) {
+                          return 'Can\'t be empty';
+                        }
 
-                    if (!RegExp(r"^[0-9]+:[a-zA-Z0-9_-]+$", caseSensitive: false).hasMatch(text)) {
-                      return "Tolong isi dengan benar ya";
-                    }
-                    print(text);
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(0.0),
-                    hintText: '1234567890:abbcdefghijklmnopqrstuvwxyz',
-                    labelText: "Token Bot",
-                    labelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14.0,
-                    ),
-                    prefixIcon: const Icon(
-                      Iconsax.card,
-                      color: Colors.black,
-                      size: 18,
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
+                        if (!RegExp(r"^[0-9]+$", caseSensitive: false).hasMatch(text)) {
+                          return "Tolong isi dengan angka ya!";
+                        }
+                        if (text.length < 5) {
+                          return "Tolong isi dengan benar ya!";
+                        }
+                        print(text);
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.all(0.0),
+                        hintText: '62xxxxxxxxx',
+                        labelText: "Phone Number",
+                        labelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.0,
+                        ),
+                        prefixIcon: const Icon(
+                          Iconsax.card,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        floatingLabelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18.0,
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ];
-        }
+              ];
+            }
 
-        List<Widget> codeField() {
-          return [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(1),
-                      spreadRadius: 1,
-                      blurRadius: 7,
-                      offset: const Offset(0, 3), // changes position of shadow
+            List<Widget> tokenBotField() {
+              return [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(1),
+                          spreadRadius: 1,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3), // changes position of shadow
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(15),
-                child: TextFormField(
-                  cursorColor: Colors.black,
-                  controller: codeTextController,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (String? text) {
-                    if (text == null || text.isEmpty) {
-                      return 'Can\'t be empty';
-                    }
+                    padding: const EdgeInsets.all(15),
+                    child: TextFormField(
+                      cursorColor: Colors.black,
+                      controller: tokenBotTextController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (String? text) {
+                        if (text == null || text.isEmpty) {
+                          return 'Can\'t be empty';
+                        }
 
-                    if (!RegExp(r"^[0-9]+$", caseSensitive: false).hasMatch(text)) {
-                      return "Tolong isi dengan benar ya";
-                    }
-                    if (text.length != 5) {
-                      return "Panjang code harus 5";
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(0.0),
-                    hintText: '12345',
-                    labelText: "Code",
-                    labelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14.0,
-                    ),
-                    prefixIcon: const Icon(
-                      Iconsax.card,
-                      color: Colors.black,
-                      size: 18,
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
+                        if (!RegExp(r"^[0-9]+:[a-zA-Z0-9_-]+$", caseSensitive: false).hasMatch(text)) {
+                          return "Tolong isi dengan benar ya";
+                        }
+                        print(text);
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.all(0.0),
+                        hintText: '1234567890:abbcdefghijklmnopqrstuvwxyz',
+                        labelText: "Token Bot",
+                        labelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.0,
+                        ),
+                        prefixIcon: const Icon(
+                          Iconsax.card,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        floatingLabelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18.0,
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ];
-        }
+              ];
+            }
 
-        List<Widget> passwordField() {
-          return [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(1),
-                      spreadRadius: 1,
-                      blurRadius: 7,
-                      offset: const Offset(0, 3), // changes position of shadow
+            List<Widget> codeField() {
+              return [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(1),
+                          spreadRadius: 1,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3), // changes position of shadow
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(15),
-                child: TextFormField(
-                  cursorColor: Colors.black,
-                  controller: passwordTextController,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: (String? text) {
-                    if (text == null || text.isEmpty) {
-                      return 'Can\'t be empty';
-                    }
-                    if (text == "email") {
-                      return 'Please enter a valid email';
-                    }
-                    if (kDebugMode) {
-                      print(text);
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(0.0),
-                    hintText: 'password1234',
-                    labelText: "Password",
-                    labelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14.0,
-                    ),
-                    prefixIcon: const Icon(
-                      Iconsax.key,
-                      color: Colors.black,
-                      size: 18,
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ];
-        }
+                    padding: const EdgeInsets.all(15),
+                    child: TextFormField(
+                      cursorColor: Colors.black,
+                      controller: codeTextController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (String? text) {
+                        if (text == null || text.isEmpty) {
+                          return 'Can\'t be empty';
+                        }
 
-        List<Widget> newpasswordField() {
-          return [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(1),
-                      spreadRadius: 1,
-                      blurRadius: 7,
-                      offset: const Offset(0, 3), // changes position of shadow
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(15),
-                child: TextFormField(
-                  cursorColor: Colors.black,
-                  controller: newpasswordTextController,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: (String? text) {
-                    if (text == null || text.isEmpty) {
-                      return 'Can\'t be empty';
-                    }
-                    if (text == "email") {
-                      return 'Please enter a valid email';
-                    }
-                    if (kDebugMode) {
-                      print(text);
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(0.0),
-                    hintText: 'newpassword123',
-                    labelText: "New Password",
-                    labelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14.0,
-                    ),
-                    prefixIcon: const Icon(
-                      Iconsax.key,
-                      color: Colors.black,
-                      size: 18,
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
+                        if (!RegExp(r"^[0-9]+$", caseSensitive: false).hasMatch(text)) {
+                          return "Tolong isi dengan benar ya";
+                        }
+                        if (text.length != 5) {
+                          return "Panjang code harus 5";
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.all(0.0),
+                        hintText: '12345',
+                        labelText: "Code",
+                        labelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.0,
+                        ),
+                        prefixIcon: const Icon(
+                          Iconsax.card,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        floatingLabelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18.0,
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Colors.black,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Colors.black,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Colors.black,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ];
-        }
+              ];
+            }
 
-        List<Widget> fullNameField() {
-          return [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(1),
-                      spreadRadius: 1,
-                      blurRadius: 7,
-                      offset: const Offset(0, 3), // changes position of shadow
+            List<Widget> passwordField() {
+              return [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(1),
+                          spreadRadius: 1,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3), // changes position of shadow
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(15),
-                child: TextFormField(
-                  cursorColor: Colors.black,
-                  controller: fullnameTextController,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: (String? text) {
-                    if (text == null || text.isEmpty) {
-                      return 'Can\'t be empty';
-                    }
-                    if (text == "email") {
-                      return 'Please enter a valid email';
-                    }
-                    if (kDebugMode) {
-                      print(text);
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(0.0),
-                    hintText: 'fullname',
-                    labelText: "Full Name",
-                    labelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14.0,
-                    ),
-                    prefixIcon: const Icon(
-                      Iconsax.personalcard,
-                      color: Colors.black,
-                      size: 18,
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
+                    padding: const EdgeInsets.all(15),
+                    child: TextFormField(
+                      cursorColor: Colors.black,
+                      controller: passwordTextController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (String? text) {
+                        if (text == null || text.isEmpty) {
+                          return 'Can\'t be empty';
+                        }
+                        if (text == "email") {
+                          return 'Please enter a valid email';
+                        }
+                        if (kDebugMode) {
+                          print(text);
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.all(0.0),
+                        hintText: 'password1234',
+                        labelText: "Password",
+                        labelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.0,
+                        ),
+                        prefixIcon: const Icon(
+                          Iconsax.key,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        floatingLabelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18.0,
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Colors.black,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Colors.black,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Colors.black,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(15.0),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ];
-        }
+              ];
+            }
 
-        List<Widget> titlePage(String title, String description) {
-          return [
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+            List<Widget> newpasswordField() {
+              return [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(1),
+                          spreadRadius: 1,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3), // changes position of shadow
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(15),
+                    child: TextFormField(
+                      cursorColor: Colors.black,
+                      controller: newpasswordTextController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (String? text) {
+                        if (text == null || text.isEmpty) {
+                          return 'Can\'t be empty';
+                        }
+                        if (text == "email") {
+                          return 'Please enter a valid email';
+                        }
+                        if (kDebugMode) {
+                          print(text);
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.all(0.0),
+                        hintText: 'newpassword123',
+                        labelText: "New Password",
+                        labelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.0,
+                        ),
+                        prefixIcon: const Icon(
+                          Iconsax.key,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        floatingLabelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18.0,
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ];
-        }
+              ];
+            }
 
-        if (state_data["type_page"] == "signin") {
-          type_sign_page = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Visibility(
-                visible: is_no_connection,
-                child: const Center(
-                  child: CircularProgressIndicator(),
+            List<Widget> fullNameField() {
+              return [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(1),
+                          spreadRadius: 1,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3), // changes position of shadow
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(15),
+                    child: TextFormField(
+                      cursorColor: Colors.black,
+                      controller: fullnameTextController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (String? text) {
+                        if (text == null || text.isEmpty) {
+                          return 'Can\'t be empty';
+                        }
+                        if (text == "email") {
+                          return 'Please enter a valid email';
+                        }
+                        if (kDebugMode) {
+                          print(text);
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.all(0.0),
+                        hintText: 'fullname',
+                        labelText: "Full Name",
+                        labelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.0,
+                        ),
+                        prefixIcon: const Icon(
+                          Iconsax.personalcard,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        floatingLabelStyle: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18.0,
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              ...titlePage("Your Phone Number", "Please typing your phone number"),
-              const SizedBox(
-                height: 20,
-              ),
-              ...phoneNumberField(),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: MaterialButton(
-                  onPressed: () async {
-                    try {
-                      var res = await tg.request("setAuthenticationPhoneNumber", {
-                        "phone_number": phoneNumberTextController.text,
-                      });
+              ];
+            }
 
-                      debug(res);
-                    } catch (e) {
-                      debug(e);
-                    }
-                  },
-                  color: Colors.blue,
-                  height: 50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  padding: const EdgeInsets.only(
-                    left: 25,
-                    right: 25,
-                  ),
-                  child: const Center(
+            List<Widget> titlePage(String title, String description) {
+              return [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
                     child: Text(
-                      "Send Code",
-                      style: TextStyle(
+                      title,
+                      style: const TextStyle(
                         fontSize: 16,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signup";
-                          setValue("state_data_sign", state_data);
-                        });
-                      },
-                      child: const Text(
-                        'Sign Qr',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signin_token_bot";
-                          setValue("state_data_sign", state_data);
-                        });
-                      },
-                      child: const Text(
-                        'SignIn Bot',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ],
-          );
-        } else if (state_data["type_page"] == "signup") {
-          type_sign_page = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Visibility(
-                visible: is_no_connection,
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              ...titlePage("Your Phone Number", "Please typing your phone number"),
-              const SizedBox(
-                height: 20,
-              ),
-              ...phoneNumberField(),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: MaterialButton(
-                  onPressed: () async {},
-                  color: Colors.blue,
-                  height: 50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  padding: const EdgeInsets.only(
-                    left: 25,
-                    right: 25,
-                  ),
-                  child: const Center(
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
                     child: Text(
-                      "Send Code",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
+                      description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signup";
-                          setValue("state_data_sign", state_data);
-                        });
+              ];
+            }
+
+            if (state_data["type_page"] == "signin") {
+              type_sign_page = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Visibility(
+                    visible: is_no_connection,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  ...titlePage("Your Phone Number", "Please typing your phone number"),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  ...phoneNumberField(),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: MaterialButton(
+                      onPressed: () async {
+                        try {
+                          var res = await tg.request("setAuthenticationPhoneNumber", {
+                            "phone_number": phoneNumberTextController.text,
+                          });
+
+                          debug(res);
+                        } catch (e) {
+                          debug(e);
+                        }
                       },
-                      child: const Text(
-                        'Sign Qr',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
+                      color: Colors.blue,
+                      height: 50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.only(
+                        left: 25,
+                        right: 25,
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "Send Code",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signin_token_bot";
-                          setValue("state_data_sign", state_data);
-                        });
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "qrcode";
+                              setValue("state_data_sign", state_data);
+                            });
+                            tg.debugRequest(
+                              "requestQrCodeAuthentication",
+                              parameters: {
+                                "other_user_ids": [],
+                              },
+                              is_log: false,
+                            );
+                          },
+                          child: const Text(
+                            'Sign Qr',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signin_token_bot";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'SignIn Bot',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              );
+            } else if (state_data["type_page"] == "qrcode") {
+              type_sign_page = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Visibility(
+                    visible: is_no_connection,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  ...titlePage("QRCODE", "Please typing your phone number"),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  Builder(builder: (context) {
+                    var qrcodes = box.get("qr", defaultValue: "");
+                    List<int> bytesQrCode = [];
+                    if (qrcodes is String && qrcodes.isNotEmpty && state_data["type_page"] == "qrcode") {
+                      var qrcode = Encoder.encode(qrcodes, ErrorCorrectionLevel.h);
+                      var matrix = qrcode.matrix!;
+                      var scale = 10;
+                      var image = img.Image(matrix.width * scale, matrix.height * scale);
+                      for (var x = 0; x < matrix.width; x++) {
+                        for (var y = 0; y < matrix.height; y++) {
+                          if (matrix.get(x, y) == 1) {
+                            img.fillRect(image, x * scale, y * scale, x * scale + scale, y * scale + scale, 0xFF000000);
+                          }
+                        }
+                      }
+                      bytesQrCode = img.encodePng(image);
+                    }
+                    var imgQr = Image.memory(Uint8List.fromList(bytesQrCode));
+                    return Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Container(
+                        height: imgQr.height,
+                        width: MediaQuery.of(context).size.width,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(0),
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(1),
+                              spreadRadius: 1,
+                              blurRadius: 7,
+                              offset: const Offset(0, 3), // changes position of shadow
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(15),
+                        child: Image(image: imgQr.image),
+                      ),
+                    );
+                  }),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: MaterialButton(
+                      onPressed: () async {
+                        try {
+                          var res = await tg.request("setAuthenticationPhoneNumber", {
+                            "phone_number": phoneNumberTextController.text,
+                          });
+
+                          debug(res);
+                        } catch (e) {
+                          debug(e);
+                        }
                       },
-                      child: const Text(
-                        'SignIn Bot',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
+                      color: Colors.blue,
+                      height: 50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.only(
+                        left: 25,
+                        right: 25,
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "Send Code",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              )
-            ],
-          );
-        } else if (state_data["type_page"] == "code") {
-          type_sign_page = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Visibility(
-                visible: is_no_connection,
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              ...titlePage("Your Account Code", "Tolong kirim kode telegram dari Nomor: ${phoneNumberTextController.text}"),
-              const SizedBox(
-                height: 20,
-              ),
-              ...codeField(),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: MaterialButton(
-                  onPressed: () async {
-                    try {
-                      var res = await tg.request("checkAuthenticationCode", {
-                        "code": codeTextController.text,
-                      });
-                      var get_me = await tg.getMe();
-                      List getUsers = getValue("users", defaultValue: []);
-                      for (var i = 0; i < getUsers.length; i++) {
-                        var loop_data = getUsers[i];
-                        if (loop_data is Map && loop_data["id"] == get_me["result"]["id"]) {
-                          getUsers[i]["is_sign"] = true;
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signup";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'Sign Qr',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signin_token_bot";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'SignIn Bot',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              );
+            } else if (state_data["type_page"] == "signup") {
+              type_sign_page = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Visibility(
+                    visible: is_no_connection,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  ...titlePage("Your Phone Number", "Please typing your phone number"),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  ...phoneNumberField(),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: MaterialButton(
+                      onPressed: () async {},
+                      color: Colors.blue,
+                      height: 50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.only(
+                        left: 25,
+                        right: 25,
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "Send Code",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "qrcode";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'Sign Qr',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signin_token_bot";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'SignIn Bot',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              );
+            } else if (state_data["type_page"] == "code") {
+              type_sign_page = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Visibility(
+                    visible: is_no_connection,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  ...titlePage("Your Account Code", "Tolong kirim kode telegram dari Nomor: ${phoneNumberTextController.text}"),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  ...codeField(),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: MaterialButton(
+                      onPressed: () async {
+                        try {
+                          var res = await tg.request("checkAuthenticationCode", {
+                            "code": codeTextController.text,
+                          });
+                          var get_me = await tg.getMe();
+                          List getUsers = getValue("users", defaultValue: []);
+                          for (var i = 0; i < getUsers.length; i++) {
+                            var loop_data = getUsers[i];
+                            if (loop_data is Map && loop_data["id"] == get_me["result"]["id"]) {
+                              getUsers[i]["is_sign"] = true;
+                              setValue("users", getUsers);
+                              Navigator.pushReplacement<void, void>(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (BuildContext context) => MainPage(box: widget.box, get_me: loop_data, tg: tg, box_client: widget.box_client),
+                                ),
+                              );
+                              return;
+                            }
+                          }
+                          get_me["result"]["is_sign"] = true;
+                          getUsers.add(get_me["result"]);
+                          setValue("users", getUsers);
+
+                          Navigator.pushReplacement<void, void>(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (BuildContext context) => MainPage(box: widget.box, get_me: get_me, tg: tg, box_client: widget.box_client),
+                            ),
+                          );
+
+                          return;
+                        } catch (e) {
+                          debug(e);
+                        }
+                      },
+                      color: Colors.blue,
+                      height: 50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.only(
+                        left: 25,
+                        right: 25,
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "Check Code",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signup";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'Sign Qr',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signin_token_bot";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'SignIn Bot',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              );
+            } else if (state_data["type_page"] == "password") {
+              type_sign_page = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Visibility(
+                    visible: is_no_connection,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  ...titlePage("Your Account Password", "Tolong isi password telegram dari Nomor: ${phoneNumberTextController.text}"),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  ...passwordField(),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: MaterialButton(
+                      onPressed: () async {},
+                      color: Colors.blue,
+                      height: 50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.only(
+                        left: 25,
+                        right: 25,
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "Check Password",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signup";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'Sign Qr',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signin_token_bot";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'SignIn Bot',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              );
+            } else if (state_data["type_page"] == "signin_token_bot") {
+              type_sign_page = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Visibility(
+                    visible: is_no_connection,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  ...titlePage("Your Token Bot", "Please confirm your token bot from @botfather"),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  ...tokenBotField(),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: MaterialButton(
+                      onPressed: () async {
+                        try {
+                          var res = await tg.request("checkAuthenticationBotToken", {
+                            "token": tokenBotTextController.text,
+                          });
+                          var get_me = await tg.getMe();
+                          List getUsers = getValue("users", defaultValue: []);
+                          for (var i = 0; i < getUsers.length; i++) {
+                            var loop_data = getUsers[i];
+                            if (loop_data is Map && loop_data["id"] == get_me["result"]["id"]) {
+                              getUsers[i]["is_sign"] = true;
+                              setValue("users", getUsers);
+                              Navigator.pushReplacement<void, void>(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (BuildContext context) => MainPage(box: widget.box, get_me: loop_data, tg: tg, box_client: widget.box_client),
+                                ),
+                              );
+                              return;
+                            }
+                          }
+                          get_me["result"]["is_sign"] = true;
+                          getUsers.add(get_me["result"]);
                           setValue("users", getUsers);
                           Navigator.pushReplacement<void, void>(
                             context,
                             MaterialPageRoute<void>(
-                              builder: (BuildContext context) => MainPage(box: widget.box, get_me: loop_data, tg: tg, box_client: widget.box_client),
+                              builder: (BuildContext context) => MainPage(box: widget.box, get_me: get_me, tg: tg, box_client: widget.box_client),
                             ),
                           );
+
                           return;
+                        } catch (e) {
+                          debug(e);
                         }
-                      }
-                      get_me["result"]["is_sign"] = true;
-                      getUsers.add(get_me["result"]);
-                      setValue("users", getUsers);
-
-                      Navigator.pushReplacement<void, void>(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (BuildContext context) => MainPage(box: widget.box, get_me: get_me, tg: tg, box_client: widget.box_client),
-                        ),
-                      );
-
-                      return;
-                    } catch (e) {
-                      debug(e);
-                    }
-                  },
-                  color: Colors.blue,
-                  height: 50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  padding: const EdgeInsets.only(
-                    left: 25,
-                    right: 25,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      "Check Code",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signup";
-                          setValue("state_data_sign", state_data);
-                        });
                       },
-                      child: const Text(
-                        'Sign Qr',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
-                        ),
+                      color: Colors.blue,
+                      height: 50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signin_token_bot";
-                          setValue("state_data_sign", state_data);
-                        });
-                      },
-                      child: const Text(
-                        'SignIn Bot',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
-                        ),
+                      padding: const EdgeInsets.only(
+                        left: 25,
+                        right: 25,
                       ),
-                    ),
-                  ],
-                ),
-              )
-            ],
-          );
-        } else if (state_data["type_page"] == "password") {
-          type_sign_page = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Visibility(
-                visible: is_no_connection,
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              ...titlePage("Your Account Password", "Tolong isi password telegram dari Nomor: ${phoneNumberTextController.text}"),
-              const SizedBox(
-                height: 20,
-              ),
-              ...passwordField(),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: MaterialButton(
-                  onPressed: () async {},
-                  color: Colors.blue,
-                  height: 50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  padding: const EdgeInsets.only(
-                    left: 25,
-                    right: 25,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      "Check Password",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
+                      child: const Center(
+                        child: Text(
+                          "Login",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signup";
-                          setValue("state_data_sign", state_data);
-                        });
-                      },
-                      child: const Text(
-                        'Sign Qr',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signin_token_bot";
-                          setValue("state_data_sign", state_data);
-                        });
-                      },
-                      child: const Text(
-                        'SignIn Bot',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ],
-          );
-        } else if (state_data["type_page"] == "signin_token_bot") {
-          type_sign_page = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Visibility(
-                visible: is_no_connection,
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              ...titlePage("Your Token Bot", "Please confirm your token bot from @botfather"),
-              const SizedBox(
-                height: 20,
-              ),
-              ...tokenBotField(),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: MaterialButton(
-                  onPressed: () async {
-                    try {
-                      var res = await tg.request("checkAuthenticationBotToken", {
-                        "token": tokenBotTextController.text,
-                      });
-                      var get_me = await tg.getMe();
-                      List getUsers = getValue("users", defaultValue: []);
-                      for (var i = 0; i < getUsers.length; i++) {
-                        var loop_data = getUsers[i];
-                        if (loop_data is Map && loop_data["id"] == get_me["result"]["id"]) {
-                          getUsers[i]["is_sign"] = true;
-                          setValue("users", getUsers);
-                          Navigator.pushReplacement<void, void>(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (BuildContext context) => MainPage(box: widget.box, get_me: loop_data, tg: tg, box_client: widget.box_client),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signqr";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'Sign Qr',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
                             ),
-                          );
-                          return;
-                        }
-                      }
-                      get_me["result"]["is_sign"] = true;
-                      getUsers.add(get_me["result"]);
-                      setValue("users", getUsers);
-                      Navigator.pushReplacement<void, void>(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (BuildContext context) => MainPage(box: widget.box, get_me: get_me, tg: tg, box_client: widget.box_client),
+                          ),
                         ),
-                      );
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              usernameTextController.clear();
+                              passwordTextController.clear();
+                              state_data["type_page"] = "signin";
+                              setValue("state_data_sign", state_data);
+                            });
+                          },
+                          child: const Text(
+                            'SignIn User',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              );
+            }
 
-                      return;
-                    } catch (e) {
-                      debug(e);
-                    }
-                  },
-                  color: Colors.blue,
-                  height: 50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  padding: const EdgeInsets.only(
-                    left: 25,
-                    right: 25,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      "Login",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+            if (is_potrait) {
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
+                  child: type_sign_page,
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signqr";
-                          setValue("state_data_sign", state_data);
-                        });
-                      },
-                      child: const Text(
-                        'Sign Qr',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
+              );
+            } else {
+              return ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 25),
+                  child: Container(
+                    height: constraints.maxHeight / 2,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(1),
+                          spreadRadius: 1,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3),
                         ),
-                      ),
+                      ],
                     ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          usernameTextController.clear();
-                          passwordTextController.clear();
-                          state_data["type_page"] = "signin";
-                          setValue("state_data_sign", state_data);
-                        });
-                      },
-                      child: const Text(
-                        'SignIn User',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w400,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: Image.asset(
+                              "assets/icons/app.png",
+                              scale: 5,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ],
-          );
-        }
-
-        if (is_potrait) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
-              child: type_sign_page,
-            ),
-          );
-        } else {
-          return ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 25),
-              child: Container(
-                height: constraints.maxHeight / 2,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(1),
-                      spreadRadius: 1,
-                      blurRadius: 7,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: Image.asset(
-                          "assets/icons/app.png",
-                          scale: 5,
+                        Expanded(
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
+                              child: type_sign_page,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
-                          child: type_sign_page,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
-                    child: type_sign_page,
                   ),
                 ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
-                    child: type_sign_page,
+              );
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
+                        child: type_sign_page,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
-          );
-        }
-      }),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minWidth: constraints.maxHeight, minHeight: constraints.maxHeight),
+                        child: type_sign_page,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+          });
+        },
+      ),
     );
   }
 }
@@ -2232,10 +2384,11 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                             borderRadius: const BorderRadius.all(Radius.circular(10)),
                             onTap: () {},
                             child: const Padding(
-                                padding: EdgeInsets.all(5),
-                                child: const Icon(
-                                  Iconsax.search_normal,
-                                )),
+                              padding: EdgeInsets.all(5),
+                              child: Icon(
+                                Iconsax.search_normal,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -2724,13 +2877,12 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                       return Padding(
                         padding: const EdgeInsets.all(10),
                         child: InkWell(
-                          borderRadius: const BorderRadius.all(const Radius.circular(25)),
+                          borderRadius: const BorderRadius.all(Radius.circular(25)),
                           onLongPress: () async {
                             print("long tap");
                           },
                           onTap: () async {
                             await Hive.openBox(res["id"].toString().replaceAll(RegExp(r"-100"), ""), path: tg.optionTdlibDefault["user_path"]);
-
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -3363,7 +3515,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                           ),
                         ),
                         TabBar(
-                          physics: const AlwaysScrollableScrollPhysics(parent: const BouncingScrollPhysics()),
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                           controller: _tabController,
                           labelColor: Colors.black,
                           unselectedLabelColor: Colors.grey.shade600,
