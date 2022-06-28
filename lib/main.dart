@@ -52,6 +52,7 @@ void main(List<String> args) async {
   for (var i = 0; i < users.length; i++) {
     var loop_data = users[i];
     if (loop_data is Map && loop_data["is_sign"] is bool && loop_data["is_sign"]) {
+      prettyPrintJson(loop_data, is_log: true);
       var user_path = "${appSupport.path}/client_$i/";
       Box<dynamic> box_client = await Hive.openBox("client", path: user_path);
       Tdlib tg = Tdlib("libtdjson.so", {
@@ -1360,7 +1361,7 @@ class _SignPageState extends State<SignPage> {
                           padding: const EdgeInsets.all(15),
                           child: Image(image: imgQr.image),
                         ),
-                        second: Center( 
+                        second: Center(
                           child: CircularProgressIndicator(color: Colors.black),
                         ),
                       ),
@@ -1376,7 +1377,7 @@ class _SignPageState extends State<SignPage> {
                             setState(() {
                               usernameTextController.clear();
                               passwordTextController.clear();
-                              state_data["type_page"] = "signup";
+                              state_data["type_page"] = "qrcode";
                               setValue("state_data_sign", state_data);
                             });
                           },
@@ -1584,7 +1585,7 @@ class _SignPageState extends State<SignPage> {
                             setState(() {
                               usernameTextController.clear();
                               passwordTextController.clear();
-                              state_data["type_page"] = "signup";
+                              state_data["type_page"] = "qrcode";
                               setValue("state_data_sign", state_data);
                             });
                           },
@@ -1791,7 +1792,7 @@ class _SignPageState extends State<SignPage> {
                             setState(() {
                               usernameTextController.clear();
                               passwordTextController.clear();
-                              state_data["type_page"] = "signqr";
+                              state_data["type_page"] = "qrcode";
                               setValue("state_data_sign", state_data);
                             });
                           },
