@@ -18,7 +18,7 @@ dependencies:
   hive_flutter: ^1.1.0
   zxing2: ^0.1.0
   image: ^3.2.0
-  telegram_client: ^0.3.7
+  telegram_client: ^0.3.26
   simulate: ^0.0.9
   pull_to_refresh: ^2.0.0
   hidable: ^1.0.2
@@ -29,6 +29,7 @@ dependencies:
   flame: ^1.2.0
   translator: ^0.1.7
   shimmer: ^2.0.0
+  cool_alert: ^1.1.0
   
 dev_dependencies:
   flutter_test:
