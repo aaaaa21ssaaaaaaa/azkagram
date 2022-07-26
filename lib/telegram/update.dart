@@ -510,9 +510,11 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Bo
 
           if (msg["is_outgoing"] == false) {
             try {
-              await audio.play(AssetSource("sound/block.mp3"));
+              await Future.delayed(Duration(milliseconds: 10));
+              await AudioPlayer().play(AssetSource("sound/block.mp3"));
             } catch (e) {}
           }
+
         }
       }
     }

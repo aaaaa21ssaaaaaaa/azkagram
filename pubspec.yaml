@@ -1,7 +1,7 @@
 name: azkagram
 description: A new Flutter project.
 publish_to: 'none'
-version: 0.0.2
+version: 0.0.6
 
 environment:
   sdk: ">=2.16.0 <3.0.0"
@@ -32,6 +32,7 @@ dependencies:
   cool_alert: ^1.1.0
   floating_navigation_bar: ^0.0.5
   play: ^0.0.2
+  notify_inapp: ^0.0.3
   
 dev_dependencies:
   flutter_test:

@@ -26,19 +26,9 @@ class _TelegramAppState extends State<TelegramApp> {
   @override
   void initState() {
     super.initState();
-    scrollController.addListener(() {
-      if (scrollController.offset.toInt() < 10) {
-        setState(() {
-          isShowBottomBar = true;
-        });
-      } else {
-        setState(() {
-          isShowBottomBar = false;
-        });
-      }
-    });
   }
 
+  Notify notify = Notify();
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
@@ -54,8 +44,7 @@ class _TelegramAppState extends State<TelegramApp> {
 
             return ScaffoldSimulate(
               body: SingleChildScrollView(
-                controller: scrollController,
-                physics: BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                physics: const BouncingScrollPhysics(parent: const AlwaysScrollableScrollPhysics()),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight: MediaQuery.of(context).size.height,
@@ -102,61 +91,14 @@ class _TelegramAppState extends State<TelegramApp> {
                             ),
                           ],
                         ),
-                      ),
+                      ),  
                       ...pageChat(ignoreTypes: ["channel"], title: "Channels", chats: chats, isHorizontal: true),
                       ...pageChat(ignoreTypes: ["channel"], title: "Chats", chats: chats),
                     ],
                   ),
                 ),
               ),
-              floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-              floatingActionButton: AnimatedCrossFade(
-                crossFadeState: isShowBottomBar ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-                duration: const Duration(milliseconds: 300),
-                firstChild: FloatingNavigationBar(
-                  barWidth: double.infinity,
-                  backgroundColor: Colors.black87,
-                  iconColor: Colors.white,
-                  indicatorColor: Colors.white,
-                  textStyle: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10.0,
-                  ),
-                  iconSize: 20.0,
-                  items: [
-                    NavBarItems(icon: Iconsax.home, title: "Home"),
-                    NavBarItems(icon: Iconsax.shop, title: "Shop"),
-                    NavBarItems(icon: Iconsax.profile_2user, title: "Profile"),
-                  ],
-                  onChanged: (int index) async {
-                    await box.put("home_index", index);
-                  },
-                ),
-                secondChild: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: InkWell(
-                    onTap: () {
-                      scrollController.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.linear);
-                      setState(() {
-                        isShowBottomBar = true;
-                      });
-                    },
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(10),
-                      child: const Icon(
-                        Iconsax.direct_up,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              bottomNavigationBar: NavigationBar(),
             );
           },
         );
@@ -164,7 +106,10 @@ class _TelegramAppState extends State<TelegramApp> {
     );
   }
 
-  pageChannel() {}
+  void callbackState(Function() callback) {
+    callback();
+    return;
+  }
 
   List<Widget> pageChat({required List<String> ignoreTypes, required String title, required List chats, bool isHorizontal = false}) {
     late List<Widget> widgets = [
@@ -195,7 +140,7 @@ class _TelegramAppState extends State<TelegramApp> {
             return false;
           }).toList();
           return ListView.builder(
-            physics: const ClampingScrollPhysics(),
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             shrinkWrap: true,
             scrollDirection: Axis.horizontal,
             itemCount: chatChannels.length,
@@ -618,9 +563,9 @@ class _TelegramAppState extends State<TelegramApp> {
               clientId: clientId)
           : null,
       builder: (context, snapshot) {
-        late Widget child = CircularProgressIndicator();
+        late Widget child = const CircularProgressIndicator();
         if (snapshot.connectionState == ConnectionState.waiting) {
-          child = CircularProgressIndicator();
+          child = const CircularProgressIndicator();
         }
         if (snapshot.hasError) {}
         if (snapshot.hasData) {
@@ -631,9 +576,9 @@ class _TelegramAppState extends State<TelegramApp> {
                 return FutureBuilder(
                   future: tg.appRequest("downloadFile", parameters: {"file_id": getRemoteFile["id"], "priority": 1}, clientId: clientId),
                   builder: (context, snapshot) {
-                    late Widget child = CircularProgressIndicator();
+                    late Widget child = const CircularProgressIndicator();
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      child = CircularProgressIndicator();
+                      child = const CircularProgressIndicator();
                     }
                     if (snapshot.hasError) {}
                     if (snapshot.hasData) {
@@ -682,7 +627,7 @@ class _TelegramAppState extends State<TelegramApp> {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: (path_image.isEmpty) ? Colors.yellow : null,
+        color: (path_image.isEmpty) ? randomColors() : null,
         borderRadius: const BorderRadius.all(Radius.circular(15)),
         image: (path_image.isNotEmpty)
             ? DecorationImage(
@@ -703,6 +648,134 @@ class _TelegramAppState extends State<TelegramApp> {
       child: Visibility(
         visible: path_image.isEmpty,
         child: Center(child: child),
+      ),
+    );
+  }
+
+  Widget NavigationBar() {
+    List items = [
+      {"icon": const Icon(Iconsax.message, color: Colors.black), "title": const Text("Message"), "selectedColor": Colors.black, "type": "home"},
+      {"icon": const Icon(Iconsax.call, color: Colors.black), "title": const Text("Call"), "selectedColor": Colors.black, "type": "news"},
+      {"icon": const Icon(Iconsax.gallery, color: Colors.black), "title": const Text("Chat"), "selectedColor": Colors.black, "type": "chat"},
+      {"icon": const Icon(Iconsax.profile_2user, color: Colors.black), "title": const Text("Me"), "selectedColor": Colors.black, "type": "me"}
+    ];
+
+    Color? selectedItemColor;
+    Color? unselectedItemColor;
+    double? selectedColorOpacity;
+
+    onTap(int index) {}
+
+    List<Widget> widgetNavigation = items.map((item) {
+      return TweenAnimationBuilder<double>(
+        tween: Tween(
+          end: items.indexOf(item) == 0 ? 1.0 : 0.0,
+        ),
+        curve: Curves.easeOutQuint,
+        duration: const Duration(milliseconds: 500),
+        builder: (context, t, _) {
+          final selectedColor = item["selectedColor"] ?? selectedItemColor ?? Theme.of(context).primaryColor;
+
+          final unselectedColor = item["unselectedColor"] ?? unselectedItemColor ?? Theme.of(context).iconTheme.color;
+
+          return Material(
+            color: Color.lerp(
+              selectedColor.withOpacity(
+                0.0,
+              ),
+              selectedColor.withOpacity(
+                selectedColorOpacity ?? 0.1,
+              ),
+              t,
+            ),
+            shape: const StadiumBorder(),
+            child: InkWell(
+              onTap: () async {
+                var index_count = items.indexOf(item);
+                onTap.call(index_count);
+              },
+              customBorder: const StadiumBorder(),
+              focusColor: selectedColor.withOpacity(0.1),
+              highlightColor: selectedColor.withOpacity(
+                0.1,
+              ),
+              splashColor: selectedColor.withOpacity(
+                0.1,
+              ),
+              hoverColor: selectedColor.withOpacity(0.1),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 16,
+                    ) -
+                    EdgeInsets.only(
+                      right: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 16,
+                          ).right *
+                          t,
+                    ),
+                child: Row(
+                  children: [
+                    IconTheme(
+                      data: IconThemeData(
+                        color: Color.lerp(
+                          unselectedColor,
+                          selectedColor,
+                          t,
+                        ),
+                        size: 24,
+                      ),
+                      child: items.indexOf(item) == 0 ? item["activeIcon"] ?? item["icon"] : item["icon"],
+                    ),
+                    ClipRect(
+                      child: SizedBox(
+                        height: 20,
+                        child: Align(
+                          alignment: const Alignment(-0.2, 0.0),
+                          widthFactor: t,
+                          child: Padding(
+                            padding: EdgeInsets.only(left: const EdgeInsets.symmetric(vertical: 10, horizontal: 16).right / 2, right: const EdgeInsets.symmetric(vertical: 10, horizontal: 16).right),
+                            child: DefaultTextStyle(
+                              style: TextStyle(
+                                color: Color.lerp(selectedColor.withOpacity(0.0), selectedColor, t),
+                                fontWeight: FontWeight.w600,
+                              ),
+                              child: item["title"],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }).toList();
+    print("pke");
+    return Container(
+      constraints: BoxConstraints(
+        minWidth: (MediaQuery.of(context).orientation == Orientation.portrait) ? MediaQuery.of(context).size.width : 0.0,
+        minHeight: !(MediaQuery.of(context).orientation == Orientation.portrait) ? MediaQuery.of(context).size.height : 0.0,
+      ),
+      padding: const EdgeInsets.all(2),
+      child: Material(
+        type: MaterialType.card,
+        color: Colors.white,
+        shadowColor: Colors.black,
+        borderRadius: BorderRadius.circular(20),
+        child: chooseWidget(
+          isMain: (MediaQuery.of(context).orientation == Orientation.portrait),
+          main: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: widgetNavigation),
+          second: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: widgetNavigation,
+          ),
+        ),
       ),
     );
   }

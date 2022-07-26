@@ -21,7 +21,7 @@ import 'package:image/image.dart' as img;
 import 'package:zxing2/qrcode.dart';
 import 'dart:math' as math;
 import 'package:audioplayers/audioplayers.dart';
-//
+import 'package:notify_inapp/notify_inapp.dart';
 
 part 'config.dart';
 

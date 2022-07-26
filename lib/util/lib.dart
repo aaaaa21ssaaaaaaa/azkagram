@@ -106,4 +106,14 @@ void debugPopUp(BuildContext context, var res, {bool is_log = false}) {
     },
   );
 }
- 
+
+MaterialColor randomColors() {
+  List<MaterialColor> colors = [
+    Colors.blue, Colors.blueGrey, Colors.brown,
+    Colors.cyan, Colors.deepOrange, Colors.deepPurple,
+    Colors.green, Colors.grey, Colors.indigo,
+    Colors.lightBlue, Colors.lightGreen, Colors.lime
+  ];
+  colors.shuffle();
+  return colors[0];
+}
