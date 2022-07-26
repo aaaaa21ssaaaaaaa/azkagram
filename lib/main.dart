@@ -6,11 +6,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:floating_navigation_bar/floating_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:play/play.dart';
 import 'package:telegram_client/telegram_client.dart';
 import 'package:simulate/simulate.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,7 +20,7 @@ import 'package:cool_alert/cool_alert.dart';
 import 'package:image/image.dart' as img;
 import 'package:zxing2/qrcode.dart';
 import 'dart:math' as math;
-
+import 'package:audioplayers/audioplayers.dart';
 //
 
 part 'config.dart';
@@ -47,7 +49,7 @@ void main(List<String> args) async {
   Box<dynamic> box = await Hive.openBox('telegram_client');
 
   Box<dynamic> box_hexaminate = await Hive.openBox("hexaminate");
-  print(appSupport.path);
+  Audio audio = Audio();
   List users = box.get("users", defaultValue: []);
   for (var i = 0; i < users.length; i++) {
     var loop_data = users[i];
@@ -69,7 +71,7 @@ void main(List<String> args) async {
         delayUpdate: Duration(milliseconds: 1),
       );
       tg.on("update", (UpdateTd update) {
-        tgUpdate(update, box: box, tg: tg, box_client: box_client);
+        tgUpdate(update, box: box, tg: tg, box_client: box_client, audio: audio);
       });
       await tg.initIsolate();
 
@@ -107,7 +109,7 @@ void main(List<String> args) async {
   );
 
   tg.on("update", (UpdateTd update) {
-    tgUpdate(update, box: box, tg: tg, box_client: box_client);
+    tgUpdate(update, box: box, tg: tg, box_client: box_client, audio: audio);
   });
 
   await tg.initIsolate();

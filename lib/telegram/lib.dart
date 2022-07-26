@@ -21,6 +21,24 @@ class TelegramApp extends StatefulWidget {
 
 class _TelegramAppState extends State<TelegramApp> {
   late int count = 0;
+  ScrollController scrollController = ScrollController();
+  late bool isShowBottomBar = true;
+  @override
+  void initState() {
+    super.initState();
+    scrollController.addListener(() {
+      if (scrollController.offset.toInt() < 10) {
+        setState(() {
+          isShowBottomBar = true;
+        });
+      } else {
+        setState(() {
+          isShowBottomBar = false;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
@@ -36,6 +54,7 @@ class _TelegramAppState extends State<TelegramApp> {
 
             return ScaffoldSimulate(
               body: SingleChildScrollView(
+                controller: scrollController,
                 physics: BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
@@ -85,8 +104,56 @@ class _TelegramAppState extends State<TelegramApp> {
                         ),
                       ),
                       ...pageChat(ignoreTypes: ["channel"], title: "Channels", chats: chats, isHorizontal: true),
-                      ...pageChat(ignoreTypes: ["channel"], title: "title", chats: chats),
+                      ...pageChat(ignoreTypes: ["channel"], title: "Chats", chats: chats),
                     ],
+                  ),
+                ),
+              ),
+              floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+              floatingActionButton: AnimatedCrossFade(
+                crossFadeState: isShowBottomBar ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+                duration: const Duration(milliseconds: 300),
+                firstChild: FloatingNavigationBar(
+                  barWidth: double.infinity,
+                  backgroundColor: Colors.black87,
+                  iconColor: Colors.white,
+                  indicatorColor: Colors.white,
+                  textStyle: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.0,
+                  ),
+                  iconSize: 20.0,
+                  items: [
+                    NavBarItems(icon: Iconsax.home, title: "Home"),
+                    NavBarItems(icon: Iconsax.shop, title: "Shop"),
+                    NavBarItems(icon: Iconsax.profile_2user, title: "Profile"),
+                  ],
+                  onChanged: (int index) async {
+                    await box.put("home_index", index);
+                  },
+                ),
+                secondChild: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: InkWell(
+                    onTap: () {
+                      scrollController.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.linear);
+                      setState(() {
+                        isShowBottomBar = true;
+                      });
+                    },
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(10),
+                      child: const Icon(
+                        Iconsax.direct_up,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -102,10 +169,10 @@ class _TelegramAppState extends State<TelegramApp> {
   List<Widget> pageChat({required List<String> ignoreTypes, required String title, required List chats, bool isHorizontal = false}) {
     late List<Widget> widgets = [
       Padding(
-        padding: EdgeInsets.all(10),
+        padding: const EdgeInsets.all(10),
         child: Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 30,
             fontWeight: FontWeight.w800,
           ),
@@ -158,6 +225,8 @@ class _TelegramAppState extends State<TelegramApp> {
               return Padding(
                 padding: const EdgeInsets.all(10),
                 child: Container(
+                  height: 250,
+                  width: 150,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(30),
                     color: Colors.white,
@@ -197,6 +266,7 @@ class _TelegramAppState extends State<TelegramApp> {
                                     fontWeight: FontWeight.w700,
                                     fontSize: 15,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
@@ -219,6 +289,7 @@ class _TelegramAppState extends State<TelegramApp> {
                                     fontWeight: FontWeight.w700,
                                     fontSize: 15,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
@@ -247,6 +318,7 @@ class _TelegramAppState extends State<TelegramApp> {
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
@@ -278,9 +350,9 @@ class _TelegramAppState extends State<TelegramApp> {
           }
         }
 
-        Map last_message = {};
+        late Map last_message = {};
         var type_content = "";
-        var message = "";
+        late String message = "";
         late bool isFile = false;
         late String path_image = "";
         late String content = "";
@@ -294,15 +366,17 @@ class _TelegramAppState extends State<TelegramApp> {
             }
           }
         }
-        if (last_message["text"] is String) {
-          message = last_message["text"];
-        }
-
         if (res["last_message"] is Map && (res["last_message"] as Map).isNotEmpty) {
           last_message = res["last_message"];
           if (last_message["type_content"] is String && (last_message["type_content"] as String).isNotEmpty) {
             type_content = last_message["type_content"];
           }
+        }
+        if (last_message["text"] is String && (last_message["text"] as String).isNotEmpty) {
+          message = last_message["text"];
+        }
+        if (last_message["caption"] is String && (last_message["caption"] as String).isNotEmpty) {
+          message = last_message["caption"];
         }
 
         if (last_message["caption"] is String) {
@@ -392,6 +466,7 @@ class _TelegramAppState extends State<TelegramApp> {
                                   fontWeight: FontWeight.w700,
                                   fontSize: 15,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
@@ -434,6 +509,7 @@ class _TelegramAppState extends State<TelegramApp> {
                                   fontSize: 17,
                                   fontWeight: FontWeight.w800,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(
                                 height: 5,
@@ -441,6 +517,7 @@ class _TelegramAppState extends State<TelegramApp> {
                               Text(
                                 (date is int) ? date.toString() : "",
                                 maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -470,6 +547,7 @@ class _TelegramAppState extends State<TelegramApp> {
                                     fontWeight: FontWeight.w700,
                                     fontSize: 15,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(
@@ -492,6 +570,7 @@ class _TelegramAppState extends State<TelegramApp> {
                                     fontWeight: FontWeight.w700,
                                     fontSize: 15,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -595,14 +674,23 @@ class _TelegramAppState extends State<TelegramApp> {
     );
   }
 
-  Widget profilePicture({required String path_image, required Widget child, required double width,  required double height}) {
+  Widget profilePicture({required String path_image, required Widget child, required double width, required double height}) {
+    if (File(path_image).existsSync() == false) {
+      path_image = "";
+    }
     return Container(
       width: width,
-      height:height,
+      height: height,
       decoration: BoxDecoration(
         color: (path_image.isEmpty) ? Colors.yellow : null,
         borderRadius: const BorderRadius.all(Radius.circular(15)),
-        image: (path_image.isNotEmpty) ? DecorationImage(fit: BoxFit.cover, image: Image.file(File(path_image)).image) : null,
+        image: (path_image.isNotEmpty)
+            ? DecorationImage(
+                fit: BoxFit.cover,
+                image: Image.file(File(path_image)).image,
+                onError: (errDetails, error) {},
+              )
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(1),

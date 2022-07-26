@@ -1,6 +1,6 @@
 part of azkagram;
 
-void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Box box_client}) async {
+void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Box box_client, required Audio audio}) async {
   try {
     getValue(key, defaultvalue, {bool is_client = false}) {
       try {
@@ -140,9 +140,7 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Bo
               is_more_detail: true,
             );
             chatJson = res["result"];
-            if (chatJson["profile_photo"] is Map){
-              
-            }
+            if (chatJson["profile_photo"] is Map) {}
           } catch (e) {}
           msg["is_outgoing"] = message["is_outgoing"] ?? false;
           msg["is_pinned"] = message["is_pinned"] ?? false;
@@ -506,7 +504,15 @@ void tgUpdate(UpdateTd update, {required Box box, required Tdlib tg, required Bo
             chatMessages = getValue(chatId, [], is_client: true);
           } catch (e) {}
           chatMessages.add(msg);
-          await setValue(chatId, chatMessages, is_client: true);
+          try {
+            await setValue(chatId, chatMessages, is_client: true);
+          } catch (e) {}
+
+          if (msg["is_outgoing"] == false) {
+            try {
+              await audio.play(AssetSource("sound/block.mp3"));
+            } catch (e) {}
+          }
         }
       }
     }
