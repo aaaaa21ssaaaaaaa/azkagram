@@ -23,6 +23,8 @@ class _TelegramAppState extends State<TelegramApp> {
   late int count = 0;
   ScrollController scrollController = ScrollController();
   late bool isShowBottomBar = true;
+  late int indexPage = 0;
+  late Map stateData = {};
   @override
   void initState() {
     super.initState();
@@ -53,52 +55,11 @@ class _TelegramAppState extends State<TelegramApp> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.of(context).padding.top,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(15),
-                        child: Row(
-                          children: [
-                            Text(
-                              Config.nameApplication,
-                              style: const TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const Spacer(),
-                            InkWell(
-                              borderRadius: const BorderRadius.all(Radius.circular(10)),
-                              onTap: () async {
-                                showDialog(
-                                    context: context,
-                                    builder: (ctx) {
-                                      return Container(
-                                        child: Center(
-                                          child: Text("count ${widget.tg.emitter.getListenersCount("update")}"),
-                                        ),
-                                      );
-                                    });
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.all(5),
-                                child: Icon(
-                                  Iconsax.search_normal,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),  
-                      ...pageChat(ignoreTypes: ["channel"], title: "Channels", chats: chats, isHorizontal: true),
-                      ...pageChat(ignoreTypes: ["channel"], title: "Chats", chats: chats),
-                    ],
+                    children: pageChats(chats: chats),
                   ),
                 ),
               ),
-              bottomNavigationBar: NavigationBar(),
+              bottomNavigationBar: NavigationBar(box: widget.box),
             );
           },
         );
@@ -106,9 +67,48 @@ class _TelegramAppState extends State<TelegramApp> {
     );
   }
 
-  void callbackState(Function() callback) {
-    callback();
-    return;
+  List<Widget> pageChats({required List<dynamic> chats}) {
+    try {
+      return [pageHome(chats: chats)][indexPage];
+    } catch (e) {
+      return [
+        Center(
+          child: Text("error: ${e.toString()}"),
+        )
+      ];
+    }
+  }
+
+  List<Widget> pageHome({required List<dynamic> chats}) {
+    return [
+      Padding(
+        padding: const EdgeInsets.all(15),
+        child: Row(
+          children: [
+            Text(
+              Config.nameApplication,
+              style: const TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const Spacer(),
+            InkWell(
+              borderRadius: const BorderRadius.all(Radius.circular(10)),
+              onTap: () async {},
+              child: const Padding(
+                padding: EdgeInsets.all(5),
+                child: Icon(
+                  Iconsax.search_normal,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      ...pageChat(ignoreTypes: ["channel"], title: "Channels", chats: chats, isHorizontal: true),
+      ...pageChat(ignoreTypes: ["channel"], title: "Chats", chats: chats),
+    ];
   }
 
   List<Widget> pageChat({required List<String> ignoreTypes, required String title, required List chats, bool isHorizontal = false}) {
@@ -381,6 +381,7 @@ class _TelegramAppState extends State<TelegramApp> {
                             height: 200,
                             decoration: BoxDecoration(
                               borderRadius: const BorderRadius.all(Radius.circular(20)),
+                              color: randomColors(),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.grey.withOpacity(1),
@@ -627,7 +628,7 @@ class _TelegramAppState extends State<TelegramApp> {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: (path_image.isEmpty) ? randomColors() : null,
+        color: randomColors(),
         borderRadius: const BorderRadius.all(Radius.circular(15)),
         image: (path_image.isNotEmpty)
             ? DecorationImage(
@@ -652,7 +653,7 @@ class _TelegramAppState extends State<TelegramApp> {
     );
   }
 
-  Widget NavigationBar() {
+  Widget NavigationBar({required Box box}) {
     List items = [
       {"icon": const Icon(Iconsax.message, color: Colors.black), "title": const Text("Message"), "selectedColor": Colors.black, "type": "home"},
       {"icon": const Icon(Iconsax.call, color: Colors.black), "title": const Text("Call"), "selectedColor": Colors.black, "type": "news"},
@@ -664,12 +665,48 @@ class _TelegramAppState extends State<TelegramApp> {
     Color? unselectedItemColor;
     double? selectedColorOpacity;
 
-    onTap(int index) {}
+    onTap(int index) async { 
+      if (items[index]["type"] == "home") {
+        stateData.clear();
+        await box.put("is_contains_app_bar", false);
+        await box.put("is_contains_navigation_bar", true);
+        await box.put("type_page", "home");
+      }
+      if (items[index]["type"] == "chat") {
+        stateData.clear();
+        // if (is_potrait) {
+        //   setValue("is_contains_app_bar", true);
+        // }
+        // setValue("is_contains_navigation_bar", true);
+        // setValue("type_page", "chat");
+      }
+      if (items[index]["type"] == "news") {
+        stateData.clear();
+        await box.put("is_contains_app_bar", false);
+        await box.put("is_contains_navigation_bar", true);
+        await box.put("type_page", "news");
+      }
+      if (items[index]["type"] == "settings") {
+        stateData.clear();
+        await box.put("is_contains_app_bar", false);
+        await box.put("is_contains_navigation_bar", true);
+        await box.put("type_page", "settings");
+      }
+      if (items[index]["type"] == "me") {
+        stateData.clear();
+        await box.put("is_contains_app_bar", false);
+        await box.put("is_contains_navigation_bar", true);
+        await box.put("type_page", "me");
+      }
+      setState(() {
+        indexPage = index;
+      });
+    }
 
     List<Widget> widgetNavigation = items.map((item) {
       return TweenAnimationBuilder<double>(
         tween: Tween(
-          end: items.indexOf(item) == 0 ? 1.0 : 0.0,
+          end: items.indexOf(item) == indexPage ? 1.0 : 0.0,
         ),
         curve: Curves.easeOutQuint,
         duration: const Duration(milliseconds: 500),
@@ -726,7 +763,7 @@ class _TelegramAppState extends State<TelegramApp> {
                         ),
                         size: 24,
                       ),
-                      child: items.indexOf(item) == 0 ? item["activeIcon"] ?? item["icon"] : item["icon"],
+                      child: items.indexOf(item) == indexPage ? item["activeIcon"] ?? item["icon"] : item["icon"],
                     ),
                     ClipRect(
                       child: SizedBox(
@@ -755,7 +792,6 @@ class _TelegramAppState extends State<TelegramApp> {
         },
       );
     }).toList();
-    print("pke");
     return Container(
       constraints: BoxConstraints(
         minWidth: (MediaQuery.of(context).orientation == Orientation.portrait) ? MediaQuery.of(context).size.width : 0.0,
@@ -769,7 +805,10 @@ class _TelegramAppState extends State<TelegramApp> {
         borderRadius: BorderRadius.circular(20),
         child: chooseWidget(
           isMain: (MediaQuery.of(context).orientation == Orientation.portrait),
-          main: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: widgetNavigation),
+          main: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: widgetNavigation,
+          ),
           second: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,

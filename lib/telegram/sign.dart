@@ -25,11 +25,11 @@ class _SignPageState extends State<SignPage> {
     return ValueListenableBuilder(
       valueListenable: Hive.box("telegram_client").listenable(),
       builder: (context, Box box, widgets) {
-        late Map state_sign_page = box.get("state_sign_page", defaultValue: {});
+        Map state_sign_page = box.get("state_sign_page", defaultValue: {});
         var qr = box.get("qr", defaultValue: "hello world");
         if (qr is String == false) {
           qr = "Hello world";
-        } 
+        }
         return ScaffoldSimulate(
           body: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
@@ -62,12 +62,12 @@ class _SignPageState extends State<SignPage> {
                         });
                         bool isValidPhoneNumber = await validatePhoneNumber(phone_number_controller, context: context);
                         if (isValidPhoneNumber) {
+                          state_sign_page["phone_number"] = phone_number_controller.text;
+                          await box.put("state_sign_page", state_sign_page);
                           var res = await widget.tg.request("setAuthenticationPhoneNumber", parameters: {
                             "phone_number": phone_number_controller.text,
                           });
 
-                          state_sign_page["phone_number"] = phone_number_controller.text;
-                          await box.put("state_sign_page", state_sign_page);
                           setState(() {
                             isButtonLoad = false;
                           });
@@ -311,8 +311,7 @@ class _SignPageState extends State<SignPage> {
                   stateSign["type"] = "qr_code";
                   box.put("state_sign_page", stateSign);
                 });
-              } catch (e) { 
-              }
+              } catch (e) {}
             },
             child: Text("QRCode"),
           ),
