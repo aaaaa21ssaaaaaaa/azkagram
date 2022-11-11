@@ -1,6 +1,29 @@
-// ignore_for_file: overridden_fields
+library azkagram;
 
-part of azkagram_page;
+import 'dart:convert';
+
+import 'package:azkagram/widget/widget.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:galaxeus_lib/galaxeus_lib.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import 'package:telegram_client/tdlib/tdlib.dart';
+import 'package:hive/hive.dart';
+
+class MyScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices {
+    return {
+      PointerDeviceKind.touch,
+      PointerDeviceKind.mouse,
+      PointerDeviceKind.trackpad,
+      PointerDeviceKind.stylus,
+      PointerDeviceKind.invertedStylus,
+    };
+  }
+}
 
 class AzkaGramApp extends StatefulWidget {
   final Tdlib tdlib;
@@ -21,10 +44,76 @@ class _AzkaGramAppState extends State<AzkaGramApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: AzkaGram(
-        tdlib: widget.tdlib,
-      ),
+    return ValueListenableBuilder(
+      valueListenable: Hive.box("azkagram").listenable(),
+      builder: (ctx, Box box, w) {
+        late ThemeMode themeMode = ThemeMode.light;
+        String getThemeMode = box.get("theme_mode", defaultValue: "auto");
+        if (getThemeMode == "auto") {
+          themeMode = ThemeMode.light;
+        } else if (getThemeMode == "dark") {
+          themeMode = ThemeMode.dark;
+        } 
+        return MaterialApp(
+          home: AzkaGram(
+            tdlib: widget.tdlib,
+          ),
+          scrollBehavior: MyScrollBehavior(),
+          theme: ThemeData(
+            appBarTheme: const AppBarTheme(
+              toolbarHeight: 0,
+              color: Colors.white,
+              shadowColor: Colors.transparent,
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                systemNavigationBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.dark,
+                systemNavigationBarIconBrightness: Brightness.dark,
+              ),
+            ),
+            brightness: Brightness.light,
+            primarySwatch: Colors.grey,
+            primaryColor: Colors.white,
+            backgroundColor: const Color(0xFFE5E5E5),
+            dividerColor: Colors.white54,
+            textTheme: const TextTheme(
+              headline1: TextStyle(
+                fontFamily: 'Raleway',
+                color: Colors.black,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+              ),
+              subtitle1: TextStyle(
+                fontFamily: 'Raleway',
+                color: Colors.black54,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            scaffoldBackgroundColor: Colors.white,
+          ),
+          darkTheme: ThemeData(
+            appBarTheme: const AppBarTheme(
+              toolbarHeight: 0,
+              color: Colors.black,
+              shadowColor: Colors.transparent,
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                systemNavigationBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.light,
+                systemNavigationBarIconBrightness: Brightness.light,
+              ),
+            ),
+            brightness: Brightness.dark,
+            primarySwatch: Colors.grey,
+            primaryColor: const Color.fromARGB(255, 255, 255, 255),
+            backgroundColor: const Color(0xFF212121),
+            dividerColor: Colors.black12,
+            scaffoldBackgroundColor: Colors.black,
+          ),
+          themeMode: themeMode,
+        );
+      },
     );
   }
 }
@@ -55,11 +144,9 @@ class _AzkaGramState extends State<AzkaGram> {
   dynamic callback(UpdateTd update) async {
     final Tdlib tg = widget.tdlib;
     Future(() async {
-      
       if (update.raw["@type"] == "updateAuthorizationState") {
         if (update.raw["authorization_state"] is Map) {
           var authStateType = update.raw["authorization_state"]["@type"];
-
 
           await tg.initClient(
             update,
@@ -67,7 +154,6 @@ class _AzkaGramState extends State<AzkaGram> {
             tdlibParameters: update.client_option,
             isVoid: true,
           );
-
 
           if (authStateType == "authorizationStateWaitRegistration") {
             if (update.raw["authorization_state"]["terms_of_service"] is Map) {
@@ -136,17 +222,12 @@ class _AzkaGramState extends State<AzkaGram> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ConstrainedBox(
-        constraints: BoxConstraints(
-          minHeight: MediaQuery.of(context).size.height,
-          minWidth: MediaQuery.of(context).size.width
-        ),
-        child:Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Qr(size: 250, data: "Hello world test widgaksasmaksmakskmakmskaskmakmskamskamksmaksmkamskamkset")
-        ],
-      )),
+          constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height, minWidth: MediaQuery.of(context).size.width),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [Qr(size: 250, data: "Hello world test widgaksasmaksmakskmakmskaskmakmskamskamksmaksmkamskamkset")],
+          )),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           var res = await widget.tdlib.invoke(

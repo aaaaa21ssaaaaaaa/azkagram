@@ -15,6 +15,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:telegram_client/telegram_client.dart';
 import "package:path/path.dart" as p;
 
+import 'azkagram.dart';
+
 void main() async {
   initSimulate();
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +31,7 @@ void main() async {
     appSupport = Directory(p.join(appSupport.path, "debug"));
   }
   Hive.init(appSupport.path);
+  Box box = await Hive.openBox("azkagram", path: appSupport.path);
   final Tdlib tdlib = Tdlib(
     getTdlib(),
     clientOption: {

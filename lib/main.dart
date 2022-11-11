@@ -2,10 +2,8 @@
 
 import 'package:azkagram/config/config.dart';
 import 'package:azkagram/core/core.dart';
-import 'package:azkagram/page/page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
 
 import 'dart:io';
 
@@ -15,8 +13,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:telegram_client/telegram_client.dart';
 import "package:path/path.dart" as p;
 
+import 'azkagram.dart';
+
 void main() async {
-  
   WidgetsFlutterBinding.ensureInitialized();
   Directory appSupport = await getApplicationSupportDirectory();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -29,6 +28,7 @@ void main() async {
     appSupport = Directory(p.join(appSupport.path, "debug"));
   }
   Hive.init(appSupport.path);
+  Box box = await Hive.openBox("azkagram", path: appSupport.path);
   final Tdlib tdlib = Tdlib(
     getTdlib(),
     clientOption: {
@@ -48,7 +48,6 @@ void main() async {
   );
   await tdlib.initIsolate();
 
-   
   runApp(AzkaGramApp(
     tdlib: tdlib,
   ));
