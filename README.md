@@ -1,14 +1,16 @@
 # Azkagram
 
-Telegram Open source based flutter and dart, dengan tampilan terbaru + tambahan feature integrated apps dari, project ini belum siap pakai karena saya tidak sengaja menghapus script yang sudah saya buat
-
-Kasih saya stars agar saya mempercepat update azkagram
+Telegram Open source based flutter and dart, dengan tampilan terbaru + tambahan feature, project ini belum siap pakai karena saya tidak sengaja menghapus script yang sudah saya buat, project ini berlanjut kalau saya sedang ada waktu, jika kalian ingin mencoba silahkan download versi alpha ya
 
 ## Comunity Support
-<!-- 1. [Telegram](https://t.me/developer_group_chat) -->
 
-## Feature now
-- ✅️ support login bot and userbot
+## Feature
+1. [x] support login bot and user
+2. [ ] a
+3. [ ] a
+
+## Sumber Belajar
+1. [Tdlib](https://core.telegram.org/tdlib/docs/)
 
 ## Screenshot​
  

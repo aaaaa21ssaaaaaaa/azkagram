@@ -1,8 +1,9 @@
 name: azkagram
-description: A new Flutter project.
+description: Telegram Client unofficial menggunakan tdlib + bahasa code dart dan framework flutter.
 repository: https://github.com/azkadev/azkagram
+issue_tracker: https://github.com/azkadev/azkagram
 publish_to: "none"
-version: 0.0.10
+version: 0.0.0
 
 environment:
   sdk: ">=2.18.2 <3.0.0"
@@ -23,6 +24,7 @@ dependencies:
   hexaminate: ^0.1.4
   telegram_client: ^0.3.71
   galaxeus_lib: ^0.0.27
+  pretty_qr_code: ^2.0.2
 
 dev_dependencies:
   flutter_test:

@@ -2,6 +2,7 @@ library azkagram_page;
 
 import 'dart:convert';
 
+import 'package:azkagram/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:galaxeus_lib/galaxeus_lib.dart';
 import 'package:simulate/simulate.dart';

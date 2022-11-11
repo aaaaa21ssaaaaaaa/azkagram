@@ -135,9 +135,18 @@ class _AzkaGramState extends State<AzkaGram> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Text("Hello saas"),
-      ),
+      body: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height,
+          minWidth: MediaQuery.of(context).size.width
+        ),
+        child:Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Qr(size: 250, data: "Hello world test widgaksasmaksmakskmakmskaskmakmskamskamksmaksmkamskamkset")
+        ],
+      )),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           var res = await widget.tdlib.invoke(
