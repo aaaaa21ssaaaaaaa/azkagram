@@ -2,6 +2,8 @@ library azkagram;
 
 import 'dart:convert';
 
+import 'package:azkagram/database/database.dart';
+import 'package:azkagram/page/page.dart';
 import 'package:azkagram/widget/widget.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -53,7 +55,7 @@ class _AzkaGramAppState extends State<AzkaGramApp> {
           themeMode = ThemeMode.light;
         } else if (getThemeMode == "dark") {
           themeMode = ThemeMode.dark;
-        } 
+        }
         return MaterialApp(
           home: AzkaGram(
             tdlib: widget.tdlib,
@@ -220,14 +222,19 @@ class _AzkaGramState extends State<AzkaGram> {
 
   @override
   Widget build(BuildContext context) {
+    return HomePage(
+      tdlib: widget.tdlib,
+      database: Database(),
+    );
     return Scaffold(
       body: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height, minWidth: MediaQuery.of(context).size.width),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [Qr(size: 250, data: "Hello world test widgaksasmaksmakskmakmskaskmakmskamskamksmaksmkamskamkset")],
-          )),
+        constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height, minWidth: MediaQuery.of(context).size.width),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [Qr(size: 250, data: "Hello world test widgaksasmaksmakskmakmskaskmakmskamskamksmaksmkamskamkset")],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           var res = await widget.tdlib.invoke(
