@@ -1,26 +1,14 @@
 # Azkagram
 
-Telegram Open source based flutter and dart, dengan tampilan terbaru + tambahan feature integrated apps dari [HEXAMINATE](https://hexaminate.netlify.app/)
+Telegram Open source based flutter and dart, dengan tampilan terbaru + tambahan feature integrated apps dari, project ini belum siap pakai karena saya tidak sengaja menghapus script yang sudah saya buat
 
 Kasih saya stars agar saya mempercepat update azkagram
 
 ## Comunity Support
-1. [Telegram](https://t.me/developer_group_chat)
+<!-- 1. [Telegram](https://t.me/developer_group_chat) -->
 
 ## Feature now
 - ✅️ support login bot and userbot
-
-## Feature next
-if you stars  my repo i will publish feature to azkagram
-- 100 stars
-  - i will add feature text to speech
-  - i will add feature brainly
-  - i will add feature wiki
-- 1k stars
-  -  i will add code load config.json for automation your account
-  -  i will add story update for contact
-- 10k
-  - i will add editor script code in app for edit automation account
 
 ## Screenshot​
  
