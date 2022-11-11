@@ -48,3 +48,4 @@ app.*.map.json
 bin/
 libs/
 libsa/
+assets/debug/

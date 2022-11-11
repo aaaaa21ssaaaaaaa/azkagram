@@ -16,10 +16,16 @@ class Qr extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular((size - (size * 3 / 3.3))),
-        boxShadow: const [
-          BoxShadow(color: Colors.black87, spreadRadius: 0.2, blurRadius: 0.2),
-          BoxShadow(color: Colors.black54, spreadRadius: 0.5, blurRadius: 0.5),
+        borderRadius: BorderRadius.circular(
+          (size - (size * 3 / 3.3)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(1),
+            spreadRadius: 1,
+            blurRadius: 7,
+            offset: const Offset(0, 3), // changes position of shadow
+          ),
         ],
       ),
       padding: const EdgeInsets.all(20),

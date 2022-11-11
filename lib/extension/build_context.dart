@@ -9,7 +9,5 @@ extension BuildContextExtension on BuildContext {
     return mediaQueryData.orientation;
   }
 
-  Size get size  {
-    return mediaQueryData.size;
-  }
+
 }
