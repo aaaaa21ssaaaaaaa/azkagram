@@ -2,13 +2,16 @@ part of azkagram_widget;
 
 class Storys extends StatelessWidget {
   final void Function(int index) onPressed;
-  const Storys({Key? key, required this.onPressed});
+  const Storys({
+    super.key,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: context.mediaQueryData.size.width,
-      height: 250,
+      height: 265,
       child: ListView.builder(
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         shrinkWrap: true,
@@ -17,11 +20,14 @@ class Storys extends StatelessWidget {
         itemCount: 10,
         itemBuilder: (BuildContext context, int index) {
           return Padding(
-            padding: EdgeInsets.all(15),
+            padding: const EdgeInsets.all(15),
             child: StoryPicture(
               pathImage: "assets/debug/girl.jpg",
               height: 250,
               width: 150,
+              status: "live",
+              count: 10190,
+              nick_name: "Azkadev sasaskoasoka",
               onPressed: () {
                 onPressed.call(index);
               },
@@ -83,57 +89,59 @@ class StoryPicture extends StatelessWidget {
           Positioned(
             top: 15,
             left: 15,
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(
-                    right: 2,
-                  ),
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      maxWidth: double.infinity,
-                      maxHeight: double.infinity,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: width * .8,
+                maxHeight: height * .8,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      right: 2,
                     ),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(198, 0, 0, 0),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      status.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(198, 0, 0, 0),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 2),
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      maxWidth: double.infinity,
-                      maxHeight: double.infinity,
-                    ),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(197, 131, 131, 131),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      count.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
+                      clipBehavior: Clip.antiAlias,
+                      child: Text(
+                        status.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
-              ],
+                  Padding(
+                    padding: const EdgeInsets.only(left: 2),
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(197, 131, 131, 131),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Text(
+                        count.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Positioned(
@@ -142,11 +150,11 @@ class StoryPicture extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.only(right: 2),
               child: Container(
-                constraints: const BoxConstraints(
-                  maxWidth: double.infinity,
-                  maxHeight: double.infinity,
+                constraints: BoxConstraints(
+                  maxWidth: width * .5,
+                  maxHeight: height * .8,
                 ),
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(197, 136, 136, 136),
                   borderRadius: BorderRadius.circular(10),
