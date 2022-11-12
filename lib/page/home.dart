@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              SizedBox(
+              const SizedBox(
                 height: 50,
               ),
               Storys(
@@ -35,6 +35,10 @@ class _HomePageState extends State<HomePage> {
                   print(index);
                 },
               ),
+
+
+              
+              
             ],
           ),
         ),
