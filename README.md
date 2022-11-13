@@ -2,6 +2,8 @@
 
 Telegram Open source based flutter and dart, dengan tampilan terbaru + tambahan feature, project ini belum siap pakai karena saya tidak sengaja menghapus script yang sudah saya buat, project ini berlanjut kalau saya sedang ada waktu, jika kalian ingin mencoba silahkan download versi alpha ya
 
+> Source code belum semuanya di publish sebagian besar masih di local
+> 
 ## Comunity Support
 
 ## Feature
