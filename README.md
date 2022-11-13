@@ -14,7 +14,8 @@ Telegram Open source based flutter and dart, dengan tampilan terbaru + tambahan 
 
 ## Screenshot​
  
-<img src="https://raw.githubusercontent.com/azkadev/azkagram/main/screenshot/home.png" width="250px"><img src="https://raw.githubusercontent.com/azkadev/azkagram/main/screenshot/me.png" width="250px">
+<img src="/screenshot/home.png" width="250px"><img src="screenshot/me.png" width="250px">
+<img src="/screenshot/chat_private.png" width="250px">
 
 <img src="https://user-images.githubusercontent.com/82513502/173319331-9e96fbe7-3e66-44b2-8577-f6685d86a368.png" width="250px"><img src="https://user-images.githubusercontent.com/82513502/173319541-19a60407-f410-4e95-8ac0-d0da2eaf2457.png" width="250px">
  
